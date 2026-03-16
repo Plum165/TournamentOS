@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+
+<title>Archery Score Tracker</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; color: #333; }
+  h1, h3 { color: #2a4d69; }
+  .arrow-buttons { display: grid; grid-template-columns: repeat(4, 60px); gap: 5px; margin: 10px 0; }
+  .arrow-buttons button { width: 60px; height: 60px; font-size: 18px; font-weight: bold; border-radius: 8px; border: 1px solid #2a4d69; background: #fff; cursor: pointer; }
+  .arrow-buttons button:hover { background: #2a4d69; color: #fff; }
+  table { border-collapse: collapse; width: 100%; margin-top: 20px; background: #fff; }
+  th, td { border: 1px solid #2a4d69; padding: 5px; text-align: center; }
+  th { background: #2a4d69; color: #fff; }
+  #stats { margin-top: 20px; background: #e6f0ff; padding: 10px; border-radius: 8px; width: fit-content; }
+  #stats span { margin-right: 15px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>Archery Score Tracker</h1>
+
+<div>
+  <label>Number of Rounds: 
+    <select id="numRounds">
+      <option value="10">10</option>
+      <option value="20" selected>20</option>
+    </select>
+  </label>
+</div>
+
+<h3>Current Round: <span id="currentRound">1</span></h3>
+
+<div class="arrow-blocks">
+  <div>Arrow 1: <span id="arrow1">-</span></div>
+  <div>Arrow 2: <span id="arrow2">-</span></div>
+  <div>Arrow 3: <span id="arrow3">-</span></div>
+</div>
+
+<div class="arrow-buttons">
+  <button onclick="addScore(1)">1</button>
+  <button onclick="addScore(2)">2</button>
+  <button onclick="addScore(3)">3</button>
+  <button onclick="addScore(4)">4</button>
+  <button onclick="addScore(5)">5</button>
+  <button onclick="addScore(6)">6</button>
+  <button onclick="addScore(7)">7</button>
+  <button onclick="addScore(8)">8</button>
+  <button onclick="addScore(9)">9</button>
+  <button onclick="addScore(10)">10</button>
+  <button onclick="addScore('X')">X</button>
+  <button onclick="addScore('M')">M</button>
+  <button onclick="clearArrow()" style="grid-column: span 2; background: #ff6666; color: #fff;">Clear</button>
+</div>
+
+<div style="margin-top:10px;">
+  <button onclick="nextRound()">Next Round</button>
+  <button onclick="finishSession()">Done</button>
+  <button onclick="exportExcel()">Export to Excel</button>
+</div>
+
+<h3>Score Table</h3>
+<table id="scoreTable">
+  <thead>
+    <tr>
+      <th>Round</th>
+      <th>Arrow 1</th>
+      <th>Arrow 2</th>
+      <th>Arrow 3</th>
+      <th>End Total (ET)</th>
+      <th>Round Total (RT)</th>
+      <th>9'</th>
+      <th>10'</th>
+      <th>Miss</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<div id="stats">
+  <span>Total Arrows: <span id="totalArrows">0</span></span>
+  <span>Total Points: <span id="totalPoints">0</span></span>
+  <span>Avg Points/Arrow: <span id="avgArrow">0</span></span>
+  <span>Miss %: <span id="missPercent">0%</span></span>
+</div>
+
+<script>
+let numRounds = parseInt(document.getElementById('numRounds').value);
+let currentRound = 1;
+let arrows = [];
+let allScores = JSON.parse(localStorage.getItem('archeryScores')) || [];
+let cumulativeTotal = allScores.length ? allScores[allScores.length - 1].RT : 0;
+
+document.getElementById('numRounds').addEventListener('change', e => {
+  numRounds = parseInt(e.target.value);
+});
+
+function addScore(score) {
+  if (arrows.length >= 3) return alert("All 3 arrows scored for this round!");
+  arrows.push(score);
+  updateArrowDisplay();
+}
+
+function clearArrow() {
+  arrows.pop();
+  updateArrowDisplay();
+}
+
+function updateArrowDisplay() {
+  document.getElementById('arrow1').textContent = arrows[0] || '-';
+  document.getElementById('arrow2').textContent = arrows[1] || '-';
+  document.getElementById('arrow3').textContent = arrows[2] || '-';
+}
+
+function nextRound() {
+  if (arrows.length < 3) return alert("Complete all 3 arrows before moving to next round!");
+  
+  let ET = arrows.reduce((sum, a) => sum + (a==='X'?10:(a==='M'?0:a)), 0);
+  cumulativeTotal += ET;
+  
+  let row = {
+    round: currentRound,
+    arrows: [...arrows],
+    ET,
+    RT: cumulativeTotal,
+    nineCount: arrows.filter(a=>a==9).length,
+    tenCount: arrows.filter(a=>a==10 || a==='X').length,
+    missCount: arrows.filter(a=>'M'===a).length
+  };
+  
+  allScores.push(row);
+  localStorage.setItem('archeryScores', JSON.stringify(allScores));
+  appendRow(row);
+  updateStats();
+  
+  arrows = [];
+  updateArrowDisplay();
+  currentRound++;
+  document.getElementById('currentRound').textContent = currentRound > numRounds ? numRounds : currentRound;
+}
+
+function appendRow(row) {
+  let tbody = document.getElementById('scoreTable').querySelector('tbody');
+  let tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${row.round}</td>
+    <td>${row.arrows[0]}</td>
+    <td>${row.arrows[1]}</td>
+    <td>${row.arrows[2]}</td>
+    <td>${row.ET}</td>
+    <td>${row.RT}</td>
+    <td>${row.nineCount}</td>
+    <td>${row.tenCount}</td>
+    <td>${row.missCount}</td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function updateStats() {
+  let totalArrows = allScores.length*3;
+  let totalPoints = allScores.reduce((sum, r)=>sum+r.ET,0);
+  let totalMisses = allScores.reduce((sum,r)=>sum+r.missCount,0);
+  document.getElementById('totalArrows').textContent = totalArrows;
+  document.getElementById('totalPoints').textContent = totalPoints;
+  document.getElementById('avgArrow').textContent = (totalPoints/totalArrows).toFixed(2);
+  document.getElementById('missPercent').textContent = ((totalMisses/totalArrows)*100).toFixed(2) + '%';
+}
+
+function finishSession() {
+  alert(`Session complete! Total arrows fired: ${allScores.length*3}, Total points: ${cumulativeTotal}, Miss %: ${((allScores.reduce((sum,r)=>sum+r.missCount,0)/(allScores.length*3))*100).toFixed(2)}%`);
+}
+
+function exportExcel() {
+  let csvContent = "data:text/csv;charset=utf-8,";
+  csvContent += "Round,Arrow 1,Arrow 2,Arrow 3,End Total (ET),Round Total (RT),9',10',Miss\n";
+  allScores.forEach(r=>{
+    csvContent += `${r.round},${r.arrows[0]},${r.arrows[1]},${r.arrows[2]},${r.ET},${r.RT},${r.nineCount},${r.tenCount},${r.missCount}\n`;
+  });
+  let encodedUri = encodeURI(csvContent);
+  let link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "archery_scores.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+updateStats();
+// Populate table if already have saved scores
+allScores.forEach(r => appendRow(r));
+</script>
+
+</body>
+</html>
