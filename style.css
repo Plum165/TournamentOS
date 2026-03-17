@@ -1,127 +1,4 @@
-/* --- New styles for Auth Section --- */
-.auth-section {
-  padding: 30px;
-  text-align: center;
-  max-width: 400px;
-  margin: 50px auto; /* Center it */
-}
-
-.auth-section h2 {
-    color: var(--accent);
-    margin-bottom: 25px;
-}
-
-.auth-form-container {
-    position: relative;
-    min-height: 250px; /* Ensure enough space for forms */
-}
-
-.auth-form {
-  display: none; /* Hidden by default */
-  flex-direction: column;
-  gap: 15px;
-  padding: 20px;
-  border-radius: 8px;
-  background: rgba(0,0,0,0.2); /* Slightly darker card */
-  border: 1px solid var(--card-border);
-  box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
-  position: absolute; /* Position for transition/toggle */
-  top: 0;
-  left: 0;
-  right: 0;
-  opacity: 0;
-  transform: translateY(10px);
-  transition: all 0.3s ease-out;
-}
-
-.auth-form.active {
-  display: flex; /* Show active form */
-  opacity: 1;
-  transform: translateY(0);
-  position: static; /* Take up space when active */
-}
-
-.auth-form h3 {
-  margin-top: 0;
-  color: var(--text);
-  font-size: 1.5em;
-  text-align: center;
-}
-
-.auth-form .input {
-  width: calc(100% - 20px); /* Adjust for padding */
-  padding: 10px;
-  margin-bottom: 5px;
-}
-
-.auth-form .btn {
-  width: 100%;
-  padding: 12px;
-  font-size: 1.1em;
-  margin-top: 10px;
-}
-
-.auth-form p {
-  margin-top: 15px;
-  font-size: 0.9em;
-  color: var(--muted);
-}
-
-.auth-form p a {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: bold;
-}
-.auth-form p a:hover {
-  text-decoration: underline;
-}
-
-
-
-.user-display {
-    background: var(--card);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--card-border);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    padding: 10px 15px;
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 1.1em;
-}
-
-.user-display strong {
-    color: var(--accent);
-}
 /* --- GLOBAL RESET & DEFAULTS --- */
-.theme-selector {
-    margin-bottom: 25px;
-    padding: 15px 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-}
-.theme-selector label {
-    font-weight: bold;
-    color: var(--text);
-}
-
-/* Ensure the select input is styled correctly within the theme-selector */
-.theme-selector .input {
-    min-width: 150px;
-    text-align: center;
-}
-
-@media (max-width: 480px) {
-  .theme-selector {
-    flex-direction: column;
-    gap: 10px;
-  }
-}
 :root {
   /* Default Colors (Cat Noir Fallback) */
   --bg1: #292826;
@@ -267,86 +144,45 @@
     --card: rgba(255, 0, 0, 0.05);
     --btn: linear-gradient(90deg, #cc0000, #000099);
     --btn-hover: linear-gradient(90deg, #ff0000, #3333ff);
-}/* --- NEW THEMES --- */
-
-/* 1. Pure Dark Emerald */
+}
 [data-theme='dark-emerald'] { 
-    --bg1: #022c22; /* Very dark teal/green */
-    --bg2: #064e3b; /* Deep emerald */
-    --bg3: #042f2e; /* Dark jungle green */
-    --text: #d1fae5; /* Mint white */
-    --accent: #10b981; /* Bright emerald green */
+    --bg1: #022c22; --bg2: #064e3b; --bg3: #042f2e; --text: #d1fae5; --accent: #10b981;
     --card: rgba(6, 78, 59, 0.3); 
     --btn: linear-gradient(90deg, #059669, #10b981); 
     --btn-hover: linear-gradient(90deg, #10b981, #34d399); 
 }
-
-/* 2. Dark Emerald & Red (High Contrast) */
 [data-theme='emerald-red'] { 
-    --bg1: #022c22; /* Same deep green base */
-    --bg2: #064e3b; 
-    --bg3: #042f2e;
-    --text: #ecfdf5; 
-    --accent: #ef4444; /* Striking Red Accent */
+    --bg1: #022c22; --bg2: #064e3b; --bg3: #042f2e; --text: #ecfdf5; --accent: #ef4444;
     --card: rgba(6, 78, 59, 0.3); 
-    --btn: linear-gradient(90deg, #b91c1c, #dc2626); /* Red buttons on Green bg */
+    --btn: linear-gradient(90deg, #b91c1c, #dc2626); 
     --btn-hover: linear-gradient(90deg, #dc2626, #ef4444); 
 }
-/* 1. Dark Blue & Cyan */
 [data-theme='dark-blue-cyan'] { 
-    --bg1: #0b1e3d; /* Deep Navy */
-    --bg2: #122a55; 
-    --bg3: #0d213f;
-    --text: #e0f2fe; 
-    --accent: #06b6d4; /* Cyan Accent */
+    --bg1: #0b1e3d; --bg2: #122a55; --bg3: #0d213f; --text: #e0f2fe; --accent: #06b6d4;
     --card: rgba(18, 42, 85, 0.3); 
     --btn: linear-gradient(90deg, #0369a1, #0ea5e9);
     --btn-hover: linear-gradient(90deg, #0ea5e9, #38bdf8);
 }
-
-/* 2. Dark Blue & Electric Blue */
 [data-theme='dark-blue-electric'] { 
-    --bg1: #0a1c3a; 
-    --bg2: #102848;
-    --bg3: #0d2140;
-    --text: #dbeafe;
-    --accent: #3b82f6; /* Electric Blue Accent */
+    --bg1: #0a1c3a; --bg2: #102848; --bg3: #0d2140; --text: #dbeafe; --accent: #3b82f6;
     --card: rgba(16, 40, 72, 0.3); 
     --btn: linear-gradient(90deg, #1d4ed8, #2563eb);
     --btn-hover: linear-gradient(90deg, #2563eb, #3b82f6);
 }
-
-/* 3. Dark Blue & Teal */
 [data-theme='dark-blue-teal'] { 
-    --bg1: #0c1f3c; 
-    --bg2: #103049;
-    --bg3: #0b2640;
-    --text: #cffafe; 
-    --accent: #14b8a6; /* Teal Accent */
+    --bg1: #0c1f3c; --bg2: #103049; --bg3: #0b2640; --text: #cffafe; --accent: #14b8a6;
     --card: rgba(16, 48, 73, 0.3); 
     --btn: linear-gradient(90deg, #0d9488, #14b8a6);
     --btn-hover: linear-gradient(90deg, #14b8a6, #2dd4bf);
 }
-
-/* 4. Dark Blue & Indigo */
 [data-theme='dark-blue-indigo'] { 
-    --bg1: #0a1a35; 
-    --bg2: #101f4a;
-    --bg3: #081c3e;
-    --text: #e0e7ff; 
-    --accent: #6366f1; /* Indigo Accent */
+    --bg1: #0a1a35; --bg2: #101f4a; --bg3: #081c3e; --text: #e0e7ff; --accent: #6366f1;
     --card: rgba(16, 31, 74, 0.3); 
     --btn: linear-gradient(90deg, #4f46e5, #6366f1);
     --btn-hover: linear-gradient(90deg, #6366f1, #818cf8);
 }
-
-/* 5. Dark Emerald-Blue Hybrid */
 [data-theme='dark-emerald-blue'] { 
-    --bg1: #022c3c; /* Deep blue-green */
-    --bg2: #064e5b;
-    --bg3: #043147;
-    --text: #e0f2fe; 
-    --accent: #0ea5e9; /* Bright Blue Accent */
+    --bg1: #022c3c; --bg2: #064e5b; --bg3: #043147; --text: #e0f2fe; --accent: #0ea5e9;
     --card: rgba(6, 78, 91, 0.3); 
     --btn: linear-gradient(90deg, #0369a1, #0ea5e9);
     --btn-hover: linear-gradient(90deg, #0ea5e9, #38bdf8);
@@ -365,8 +201,8 @@ body {
   padding: 0;
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* Align content to the top */
-  padding: 20px; /* Added padding to body for overall spacing */
+  align-items: flex-start;
+  padding: 20px;
   box-sizing: border-box;
 }
 
@@ -376,7 +212,7 @@ body {
   padding: 25px;
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-  background: rgba(0,0,0,0.2); /* Slightly darker base for the container */
+  background: rgba(0,0,0,0.2);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -414,7 +250,7 @@ h1, h3 {
   color: var(--text);
   outline: none;
   transition: border-color 0.2s;
-  appearance: none; /* Remove default select styling */
+  appearance: none;
   cursor: pointer;
   margin-left: 10px;
 }
@@ -432,7 +268,7 @@ h1, h3 {
   grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); 
   gap: 8px; 
   margin: 20px 0; 
-  max-width: 500px; /* Limit width of buttons */
+  max-width: 500px;
   margin-left: auto;
   margin-right: auto;
 }
@@ -445,7 +281,7 @@ h1, h3 {
   font-size: 1.1rem;
   cursor: pointer;
   border: none;
-  height: 60px; /* Ensure uniform button height */
+  height: 60px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -466,7 +302,7 @@ h1, h3 {
 
 .btn-clear {
   grid-column: span 2;
-  background: #dc2626; /* Red for clear */
+  background: #dc2626;
   color: white;
   border: 1px solid #dc2626;
 }
@@ -477,11 +313,18 @@ h1, h3 {
 
 .session-actions {
   display: flex;
+  flex-wrap: wrap; /* Allow buttons to wrap */
   justify-content: center;
   gap: 15px;
   margin-top: 20px;
   margin-bottom: 30px;
 }
+
+.session-actions .btn { /* Ensure all buttons in this section are styled */
+    flex-grow: 1; /* Allow buttons to grow and fill space */
+    min-width: 150px; /* Minimum width for buttons */
+}
+
 
 .btn-primary {
   background: var(--btn);
@@ -497,19 +340,31 @@ h1, h3 {
 }
 .btn-ghost:hover { background: rgba(255,255,255,0.1); }
 
+/* New style for Clear All Data button */
+.btn-reset-all {
+  background: #ffc107; /* Amber/Yellow for a warning/reset action */
+  color: #333;
+  border: 1px solid #ffc107;
+  font-weight: bold;
+}
+.btn-reset-all:hover {
+  background: #ffeb3b;
+  box-shadow: 0 0 10px #ffc107;
+}
+
 
 .table-title {
   margin-top: 30px;
 }
 
 .table-container {
-    overflow-x: auto; /* Enable horizontal scrolling for tables */
+    overflow-x: auto;
 }
 
 table { 
   border-collapse: collapse; 
   width: 100%; 
-  margin-top: 0; /* Removed top margin as it's within .table-container */
+  margin-top: 0;
   background: transparent;
   color: var(--text);
   font-size: 0.9em;
@@ -518,7 +373,7 @@ th, td {
   border: 1px solid var(--card-border); 
   padding: 8px 5px; 
   text-align: center; 
-  white-space: nowrap; /* Prevent text wrapping in cells */
+  white-space: nowrap;
 }
 th { 
   background: var(--accent); 
@@ -529,7 +384,7 @@ th {
 #stats {
   display: flex;
   justify-content: space-around;
-  flex-wrap: wrap; /* Allow stats to wrap on smaller screens */
+  flex-wrap: wrap;
   gap: 10px;
   font-size: 1.1em;
   margin-top: 30px;
@@ -537,7 +392,25 @@ th {
 #stats span { 
   font-weight: bold; 
   color: var(--text);
-  white-space: nowrap; /* Prevent individual stats from wrapping */
+  white-space: nowrap;
+}
+
+.theme-selector {
+    margin-bottom: 25px;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+.theme-selector label {
+    font-weight: bold;
+    color: var(--text);
+}
+
+.theme-selector .input {
+    min-width: 150px;
+    text-align: center;
 }
 
 /* Media Queries for Responsiveness */
@@ -557,7 +430,7 @@ th {
     gap: 10px;
   }
   .arrow-buttons {
-    grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); /* Smaller buttons */
+    grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
     gap: 6px;
   }
   .btn, .btn-clear {
@@ -568,12 +441,19 @@ th {
     flex-direction: column;
     gap: 10px;
   }
-  .session-actions button {
+  .session-actions .btn { /* Adjust for new button and flex-grow */
     width: 100%;
+    min-width: unset;
   }
   #stats {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+}
+@media (max-width: 480px) {
+  .theme-selector {
+    flex-direction: column;
+    gap: 10px;
   }
 }

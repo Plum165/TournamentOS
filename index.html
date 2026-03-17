@@ -44,34 +44,9 @@
 
   <h1>Archery Score Tracker</h1>
 
-  <!-- Login/Signup Section -->
-  <div id="authSection" class="auth-section glass">
-    <h2>Welcome to Archery Tracker!</h2>
-    <div class="auth-form-container">
-      <div id="loginForm" class="auth-form active">
-        <h3>Login</h3>
-        <input type="text" id="loginUsername" class="input" placeholder="Username" autocomplete="username">
-        <input type="password" id="loginPassword" class="input" placeholder="Password" autocomplete="current-password">
-        <button class="btn btn-primary" onclick="handleLogin()">Login</button>
-        <p>Don't have an account? <a href="#" onclick="showRegisterForm()">Register here</a></p>
-      </div>
-
-      <div id="registerForm" class="auth-form">
-        <h3>Register</h3>
-        <input type="text" id="registerUsername" class="input" placeholder="Username" autocomplete="new-username">
-        <input type="password" id="registerPassword" class="input" placeholder="Password" autocomplete="new-password">
-        <button class="btn btn-primary" onclick="handleRegister()">Register</button>
-        <p>Already have an account? <a href="#" onclick="showLoginForm()">Login here</a></p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Main Application Section (Hidden by default, shown after login) -->
-  <div id="appSection" class="app-section" style="display: none;">
-    <div class="user-display glass">
-        <span>Logged in as: <strong id="loggedInUsername">Guest</strong></span>
-        <button class="btn btn-ghost" onclick="logoutUser()">Logout</button>
-    </div>
+  <!-- Main Application Section (Always visible) -->
+  <div id="appSection" class="app-section">
+    <!-- Removed user-display as it's not needed for local storage -->
 
     <div class="controls glass">
       <label>Number of Rounds: 
@@ -108,8 +83,9 @@
 
     <div class="session-actions">
       <button class="btn btn-primary" onclick="nextRound()">Next Round</button>
-      <button class="btn btn-ghost" onclick="finishSession()">Session Done</button>
+      <button class="btn btn-ghost" onclick="finishSession()">Done Session</button>
       <button class="btn btn-ghost" onclick="exportExcel()">Export to Excel</button>
+      <button class="btn btn-ghost btn-reset-all" onclick="clearAllData()">Clear All Stored Data</button> <!-- New button -->
     </div>
 
     <h3 class="table-title">Score Table</h3>
