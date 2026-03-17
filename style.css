@@ -208,7 +208,7 @@ body {
 
 .container {
   max-width: 900px;
-  width: 100%;
+  width: 100%; /* Ensure it's fluid */
   padding: 25px;
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
@@ -256,19 +256,28 @@ h1, h3 {
 }
 .input:focus { border-color: var(--accent); }
 
+/* Improved arrow blocks for responsiveness */
 .arrow-blocks {
   display: flex;
   justify-content: space-around;
   font-size: 1.2em;
   font-weight: bold;
+  flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+  gap: 10px; /* Space between arrow displays */
 }
+.arrow-blocks > div {
+    flex: 1 1 auto; /* Allow items to grow and shrink, with a base size */
+    min-width: 80px; /* Ensure a minimum width */
+}
+
 
 .arrow-buttons { 
   display: grid; 
-  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); 
+  /* Responsive grid: 6 columns on larger, 5 on medium, 4 on small */
+  grid-template-columns: repeat(6, 1fr); 
   gap: 8px; 
   margin: 20px 0; 
-  max-width: 500px;
+  max-width: 550px; /* Slightly increase max width for more buttons */
   margin-left: auto;
   margin-right: auto;
 }
@@ -301,7 +310,7 @@ h1, h3 {
 }
 
 .btn-clear {
-  grid-column: span 2;
+  grid-column: span 2; /* Still spans 2 columns */
   background: #dc2626;
   color: white;
   border: 1px solid #dc2626;
@@ -313,16 +322,16 @@ h1, h3 {
 
 .session-actions {
   display: flex;
-  flex-wrap: wrap; /* Allow buttons to wrap */
+  flex-wrap: wrap;
   justify-content: center;
   gap: 15px;
   margin-top: 20px;
   margin-bottom: 30px;
 }
 
-.session-actions .btn { /* Ensure all buttons in this section are styled */
-    flex-grow: 1; /* Allow buttons to grow and fill space */
-    min-width: 150px; /* Minimum width for buttons */
+.session-actions .btn {
+    flex-grow: 1; 
+    min-width: 150px; 
 }
 
 
@@ -340,9 +349,8 @@ h1, h3 {
 }
 .btn-ghost:hover { background: rgba(255,255,255,0.1); }
 
-/* New style for Clear All Data button */
 .btn-reset-all {
-  background: #ffc107; /* Amber/Yellow for a warning/reset action */
+  background: #ffc107;
   color: #333;
   border: 1px solid #ffc107;
   font-weight: bold;
@@ -358,7 +366,7 @@ h1, h3 {
 }
 
 .table-container {
-    overflow-x: auto;
+    overflow-x: auto; /* Essential for tables on small screens */
 }
 
 table { 
@@ -368,6 +376,7 @@ table {
   background: transparent;
   color: var(--text);
   font-size: 0.9em;
+  min-width: 600px; /* Ensure table doesn't get too squished, relies on overflow-x */
 }
 th, td { 
   border: 1px solid var(--card-border); 
@@ -413,10 +422,16 @@ th {
     text-align: center;
 }
 
-/* Media Queries for Responsiveness */
+/* --- Media Queries for Mobile Responsiveness --- */
+
+/* For screens smaller than 768px (common tablet portrait / large phone landscape) */
 @media (max-width: 768px) {
+  body {
+    padding: 15px;
+  }
   .container {
     padding: 15px;
+    border-radius: 8px;
   }
   h1 {
     font-size: 1.8em;
@@ -424,36 +439,108 @@ th {
   h3 {
     font-size: 1.3em;
   }
-  .arrow-blocks {
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-  }
-  .arrow-buttons {
-    grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
-    gap: 6px;
-  }
-  .btn, .btn-clear {
-    height: 50px;
+  .controls label {
     font-size: 1em;
   }
+  .input {
+    padding: .6rem .8rem;
+    margin-left: 5px;
+  }
+  .arrow-blocks {
+    flex-direction: column; /* Stack arrow displays vertically */
+    align-items: center; /* Center them */
+    gap: 8px;
+    font-size: 1.1em;
+  }
+  .arrow-blocks > div {
+    width: 100%; /* Make them full width */
+  }
+
+  /* Adjust arrow buttons for smaller screens (e.g., 5 columns) */
+  .arrow-buttons {
+    grid-template-columns: repeat(5, 1fr); 
+    gap: 6px;
+    max-width: 400px; /* Constrain width a bit more */
+  }
+  .btn, .btn-clear {
+    height: 55px; /* Slightly smaller buttons */
+    font-size: 1em;
+    padding: 0.5rem; /* Adjust padding */
+  }
+  .btn-clear {
+      grid-column: span 2; /* Maintain span for clear */
+  }
+
   .session-actions {
-    flex-direction: column;
+    flex-direction: column; /* Stack session action buttons vertically */
     gap: 10px;
   }
-  .session-actions .btn { /* Adjust for new button and flex-grow */
-    width: 100%;
-    min-width: unset;
+  .session-actions .btn {
+    width: 100%; /* Make them full width */
+    min-width: unset; /* Remove min-width constraint */
+    padding: 12px; /* Consistent padding */
   }
+
+  table {
+    font-size: 0.8em; /* Smaller font in tables */
+    min-width: 500px; /* Allow horizontal scroll, but ensure readability */
+  }
+  th, td {
+    padding: 6px 4px; /* Smaller padding in table cells */
+  }
+
   #stats {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: column; /* Stack stats vertically */
+    align-items: flex-start; /* Align left */
     gap: 8px;
+    font-size: 1em;
+  }
+  #stats span {
+    width: 100%; /* Full width for each stat line */
+    text-align: left;
   }
 }
+
+/* For very small screens (e.g., iPhone SE portrait) */
 @media (max-width: 480px) {
+  body {
+    padding: 10px;
+  }
+  .container {
+    padding: 10px;
+  }
+  h1 {
+    font-size: 1.5em;
+  }
+  h3 {
+    font-size: 1.1em;
+  }
   .theme-selector {
-    flex-direction: column;
+    flex-direction: column; /* Stack theme selector elements */
     gap: 10px;
+    padding: 10px;
+  }
+  .theme-selector .input {
+    width: 100%; /* Full width dropdown */
+    margin-left: 0; /* Remove left margin */
+  }
+
+  /* Even smaller grid for arrow buttons on very small screens (e.g., 4 columns) */
+  .arrow-buttons {
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 5px;
+    max-width: 300px; /* Constrain width even more */
+  }
+  .btn, .btn-clear {
+    height: 45px; /* Even smaller buttons */
+    font-size: 0.9em;
+  }
+   .btn-clear {
+      grid-column: span 2; 
+  }
+
+  table {
+    font-size: 0.75em; /* Even smaller table font */
+    min-width: 400px; /* Minimum width for scroll */
   }
 }
