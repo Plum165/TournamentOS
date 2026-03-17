@@ -1,0 +1,24 @@
+{
+  "users": [
+    {
+      "id": "Rashaad",
+      "username": "Rashaad",
+      "password": "ME001",
+      "scores": [
+        {
+          "round": 1,
+          "arrows": [
+            5,
+            10,
+            2
+          ],
+          "ET": 17,
+          "RT": 17,
+          "nineCount": 0,
+          "tenCount": 1,
+          "missCount": 0
+        }
+      ]
+    }
+  ]
+}

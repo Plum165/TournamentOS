@@ -1,3 +1,101 @@
+/* --- New styles for Auth Section --- */
+.auth-section {
+  padding: 30px;
+  text-align: center;
+  max-width: 400px;
+  margin: 50px auto; /* Center it */
+}
+
+.auth-section h2 {
+    color: var(--accent);
+    margin-bottom: 25px;
+}
+
+.auth-form-container {
+    position: relative;
+    min-height: 250px; /* Ensure enough space for forms */
+}
+
+.auth-form {
+  display: none; /* Hidden by default */
+  flex-direction: column;
+  gap: 15px;
+  padding: 20px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.2); /* Slightly darker card */
+  border: 1px solid var(--card-border);
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+  position: absolute; /* Position for transition/toggle */
+  top: 0;
+  left: 0;
+  right: 0;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease-out;
+}
+
+.auth-form.active {
+  display: flex; /* Show active form */
+  opacity: 1;
+  transform: translateY(0);
+  position: static; /* Take up space when active */
+}
+
+.auth-form h3 {
+  margin-top: 0;
+  color: var(--text);
+  font-size: 1.5em;
+  text-align: center;
+}
+
+.auth-form .input {
+  width: calc(100% - 20px); /* Adjust for padding */
+  padding: 10px;
+  margin-bottom: 5px;
+}
+
+.auth-form .btn {
+  width: 100%;
+  padding: 12px;
+  font-size: 1.1em;
+  margin-top: 10px;
+}
+
+.auth-form p {
+  margin-top: 15px;
+  font-size: 0.9em;
+  color: var(--muted);
+}
+
+.auth-form p a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: bold;
+}
+.auth-form p a:hover {
+  text-decoration: underline;
+}
+
+
+
+.user-display {
+    background: var(--card);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.1em;
+}
+
+.user-display strong {
+    color: var(--accent);
+}
 /* --- GLOBAL RESET & DEFAULTS --- */
 .theme-selector {
     margin-bottom: 25px;

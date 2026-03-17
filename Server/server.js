@@ -2,14 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Low } = require('lowdb');
-const { JSONFile } = require('lowdb/node'); // Use /node for ES modules compatibility
+const { JSONFile } = require('lowdb/node');
 
 // Configure LowDB
 const adapter = new JSONFile('db.json');
-const db = new Low(adapter);
-
-// Default data structure if db.json is empty
-db.data = db.data || { users: [] };
+// Pass a default data object directly to the Low constructor IF the file is empty/non-existent
+// This ensures db.data always has a value, even before the first read.
+const db = new Low(adapter, { users: [] }); // <--- THIS IS THE KEY CHANGE
 
 const app = express();
 const port = 3000;
@@ -19,8 +18,6 @@ app.use(bodyParser.json()); // Parse JSON request bodies
 
 // Middleware for a very basic "authentication" (replace with real auth)
 function authenticateUser(req, res, next) {
-    // For simplicity, we'll assume a 'userId' header is sent
-    // In a real app, this would verify a JWT or session token
     const userId = req.headers['x-user-id'];
     if (!userId) {
         return res.status(401).send('Unauthorized: x-user-id header missing');
@@ -33,7 +30,7 @@ function authenticateUser(req, res, next) {
 
 // Register a new user (simplified)
 app.post('/api/register', async (req, res) => {
-    await db.read();
+    await db.read(); // Read to ensure we have the latest state from file
     const { username, password } = req.body;
     if (!username || !password) {
         return res.status(400).send('Username and password are required');
@@ -41,9 +38,9 @@ app.post('/api/register', async (req, res) => {
     if (db.data.users.some(u => u.username === username)) {
         return res.status(409).send('User already exists');
     }
-    const newUser = { id: username, username, password, scores: [] }; // Using username as ID for simplicity
+    const newUser = { id: username, username, password, scores: [] };
     db.data.users.push(newUser);
-    await db.write();
+    await db.write(); // Write changes back to file
     res.status(201).json({ message: 'User registered', userId: newUser.id });
 });
 
@@ -55,9 +52,8 @@ app.post('/api/login', async (req, res) => {
     if (!user) {
         return res.status(401).send('Invalid credentials');
     }
-    res.json({ message: 'Login successful', userId: user.id }); // Return userId to be used in headers
+    res.json({ message: 'Login successful', userId: user.id });
 });
-
 
 // Get scores for the authenticated user
 app.get('/api/scores', authenticateUser, async (req, res) => {
@@ -89,14 +85,16 @@ app.delete('/api/scores', authenticateUser, async (req, res) => {
     if (!user) {
         return res.status(404).send('User not found');
     }
-    user.scores = []; // Clear all scores
+    user.scores = [];
     await db.write();
     res.json({ message: 'All scores cleared for user' });
 });
 
-
 // Start the server
 app.listen(port, async () => {
-    await db.read(); // Read database when server starts
+    // Initial read and write to ensure db.json is created with default data
+    // if it doesn't exist, and to load existing data.
+    await db.read();
+    await db.write(); // This will create db.json with { "users": [] } if it's new.
     console.log(`Archery server running at http://localhost:${port}`);
 });
