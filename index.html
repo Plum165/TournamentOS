@@ -44,71 +44,102 @@
 
   <h1>Archery Score Tracker</h1>
 
-  <div class="controls glass">
-    <label>Number of Rounds: 
-      <select id="numRounds" class="input">
-        <option value="10">10</option>
-        <option value="20" selected>20</option>
-      </select>
-    </label>
+  <!-- Login/Signup Section -->
+  <div id="authSection" class="auth-section glass">
+    <h2>Welcome to Archery Tracker!</h2>
+    <div class="auth-form-container">
+      <div id="loginForm" class="auth-form active">
+        <h3>Login</h3>
+        <input type="text" id="loginUsername" class="input" placeholder="Username" autocomplete="username">
+        <input type="password" id="loginPassword" class="input" placeholder="Password" autocomplete="current-password">
+        <button class="btn btn-primary" onclick="handleLogin()">Login</button>
+        <p>Don't have an account? <a href="#" onclick="showRegisterForm()">Register here</a></p>
+      </div>
+
+      <div id="registerForm" class="auth-form">
+        <h3>Register</h3>
+        <input type="text" id="registerUsername" class="input" placeholder="Username" autocomplete="new-username">
+        <input type="password" id="registerPassword" class="input" placeholder="Password" autocomplete="new-password">
+        <button class="btn btn-primary" onclick="handleRegister()">Register</button>
+        <p>Already have an account? <a href="#" onclick="showLoginForm()">Login here</a></p>
+      </div>
+    </div>
   </div>
 
-  <h3 class="current-round">Current Round: <span id="currentRound">1</span></h3>
+  <!-- Main Application Section (Hidden by default, shown after login) -->
+  <div id="appSection" class="app-section" style="display: none;">
+    <div class="user-display glass">
+        <span>Logged in as: <strong id="loggedInUsername">Guest</strong></span>
+        <button class="btn btn-ghost" onclick="logoutUser()">Logout</button>
+    </div>
 
-  <div class="arrow-blocks glass">
-    <div>Arrow 1: <span id="arrow1">-</span></div>
-    <div>Arrow 2: <span id="arrow2">-</span></div>
-    <div>Arrow 3: <span id="arrow3">-</span></div>
+    <div class="controls glass">
+      <label>Number of Rounds: 
+        <select id="numRounds" class="input">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+        </select>
+      </label>
+    </div>
+
+    <h3 class="current-round">Current Round: <span id="currentRound">1</span></h3>
+
+    <div class="arrow-blocks glass">
+      <div>Arrow 1: <span id="arrow1">-</span></div>
+      <div>Arrow 2: <span id="arrow2">-</span></div>
+      <div>Arrow 3: <span id="arrow3">-</span></div>
+    </div>
+
+    <div class="arrow-buttons">
+      <button class="btn btn-score" onclick="addScore(1)">1</button>
+      <button class="btn btn-score" onclick="addScore(2)">2</button>
+      <button class="btn btn-score" onclick="addScore(3)">3</button>
+      <button class="btn btn-score" onclick="addScore(4)">4</button>
+      <button class="btn btn-score" onclick="addScore(5)">5</button>
+      <button class="btn btn-score" onclick="addScore(6)">6</button>
+      <button class="btn btn-score" onclick="addScore(7)">7</button>
+      <button class="btn btn-score" onclick="addScore(8)">8</button>
+      <button class="btn btn-score" onclick="addScore(9)">9</button>
+      <button class="btn btn-score" onclick="addScore(10)">10</button>
+      <button class="btn btn-score" onclick="addScore('X')">X</button>
+      <button class="btn btn-score" onclick="addScore('M')">M</button>
+      <button class="btn btn-clear" onclick="clearArrow()">Clear Last</button>
+    </div>
+
+    <div class="session-actions">
+      <button class="btn btn-primary" onclick="nextRound()">Next Round</button>
+      <button class="btn btn-ghost" onclick="finishSession()">Done Session</button>
+      <button class="btn btn-ghost" onclick="exportExcel()">Export to Excel</button>
+    </div>
+
+    <h3 class="table-title">Score Table</h3>
+    <div class="table-container glass">
+      <table id="scoreTable">
+        <thead>
+          <tr>
+            <th>Round</th>
+            <th>Arrow 1</th>
+            <th>Arrow 2</th>
+            <th>Arrow 3</th>
+            <th>End Total (ET)</th>
+            <th>Round Total (RT)</th>
+            <th>9'</th>
+            <th>10'</th>
+            <th>Miss</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="stats" class="glass">
+      <span>Total Arrows: <span id="totalArrows">0</span></span>
+      <span>Total Points: <span id="totalPoints">0</span></span>
+      <span>Avg Points/Arrow: <span id="avgArrow">0</span></span>
+      <span>Miss %: <span id="missPercent">0%</span></span>
+    </div>
   </div>
 
-  <div class="arrow-buttons">
-    <button class="btn btn-score" onclick="addScore(1)">1</button>
-    <button class="btn btn-score" onclick="addScore(2)">2</button>
-    <button class="btn btn-score" onclick="addScore(3)">3</button>
-    <button class="btn btn-score" onclick="addScore(4)">4</button>
-    <button class="btn btn-score" onclick="addScore(5)">5</button>
-    <button class="btn btn-score" onclick="addScore(6)">6</button>
-    <button class="btn btn-score" onclick="addScore(7)">7</button>
-    <button class="btn btn-score" onclick="addScore(8)">8</button>
-    <button class="btn btn-score" onclick="addScore(9)">9</button>
-    <button class="btn btn-score" onclick="addScore(10)">10</button>
-    <button class="btn btn-score" onclick="addScore('X')">X</button>
-    <button class="btn btn-score" onclick="addScore('M')">M</button>
-    <button class="btn btn-clear" onclick="clearArrow()">Clear Last</button>
-  </div>
-
-  <div class="session-actions">
-    <button class="btn btn-primary" onclick="nextRound()">Next Round</button>
-    <button class="btn btn-ghost" onclick="finishSession()">Done Session</button>
-    <button class="btn btn-ghost" onclick="exportExcel()">Export to Excel</button>
-  </div>
-
-  <h3 class="table-title">Score Table</h3>
-  <div class="table-container glass">
-    <table id="scoreTable">
-      <thead>
-        <tr>
-          <th>Round</th>
-          <th>Arrow 1</th>
-          <th>Arrow 2</th>
-          <th>Arrow 3</th>
-          <th>End Total (ET)</th>
-          <th>Round Total (RT)</th>
-          <th>9'</th>
-          <th>10'</th>
-          <th>Miss</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <div id="stats" class="glass">
-    <span>Total Arrows: <span id="totalArrows">0</span></span>
-    <span>Total Points: <span id="totalPoints">0</span></span>
-    <span>Avg Points/Arrow: <span id="avgArrow">0</span></span>
-    <span>Miss %: <span id="missPercent">0%</span></span>
-  </div>
 </div>
 
 <script src="script.js"></script>
