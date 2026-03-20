@@ -5,7 +5,7 @@ let arrows = [];
 let allScores = JSON.parse(localStorage.getItem('archeryScores')) || [];
 let cumulativeTotal = allScores.length ? allScores[allScores.length - 1].RT : 0;
 
-// Theme Selector Logic (No changes needed here)
+// Theme Selector Logic
 const themeDropdown = document.getElementById('theme-dropdown');
 const htmlElement = document.documentElement;
 
@@ -26,7 +26,6 @@ if (savedTheme) {
     setTheme('dark-emerald');
     themeDropdown.value = 'dark-emerald';
 }
-// End Theme Selector Logic
 
 document.getElementById('numRounds').addEventListener('change', e => {
   numRounds = parseInt(e.target.value);
@@ -88,7 +87,7 @@ function nextRound() {
   };
   
   allScores.push(row);
-  localStorage.setItem('archeryScores', JSON.stringify(allScores)); // Save to localStorage
+  localStorage.setItem('archeryScores', JSON.stringify(allScores)); 
   appendRow(row);
   updateStats();
   
@@ -150,12 +149,19 @@ Miss %: ${missPercentage}%`);
   }
 }
 
+/** 
+ * UPDATED: resetSession
+ * Clears score data but does not touch theme logic
+ */
 function resetSession() {
-    localStorage.removeItem('archeryScores'); // Clear only the session scores
+    localStorage.removeItem('archeryScores'); // Delete scores
+    // Logic variables reset
     allScores = [];
     arrows = [];
     cumulativeTotal = 0;
     currentRound = 1;
+    
+    // UI Reset
     document.getElementById('currentRound').textContent = currentRound;
     updateArrowDisplay();
     document.getElementById('scoreTable').querySelector('tbody').innerHTML = '';
@@ -164,18 +170,17 @@ function resetSession() {
     numRounds = 20;
 }
 
-// NEW FUNCTION: Clear ALL locally stored data (including themes)
+/** 
+ * UPDATED: clearAllData 
+ * Erases scores ONLY. Leaves 'selectedTheme' alone.
+ */
 function clearAllData() {
-    if (confirm("Are you sure you want to clear ALL stored archery data (scores and theme)? This action cannot be undone.")) {
-        localStorage.clear(); // Clears ALL localStorage items
-        resetSession(); // Resets the score tracker UI
-        // Re-apply default theme after clearing localStorage
-        setTheme('dark-emerald');
-        themeDropdown.value = 'dark-emerald';
-        alert("All local data has been cleared!");
+    if (confirm("Are you sure you want to clear ALL archery scores? Your theme settings will be saved.")) {
+        localStorage.removeItem('archeryScores'); // Targeted removal
+        resetSession(); 
+        alert("Scores cleared! Your theme was kept.");
     }
 }
-
 
 function exportExcel() {
   if (allScores.length === 0) {
@@ -190,13 +195,13 @@ function exportExcel() {
   let encodedUri = encodeURI(csvContent);
   let link = document.createElement("a");
   link.setAttribute("href", encodedUri);
-  link.setAttribute("download", "archery_scores.csv"); // Filename is generic now
+  link.setAttribute("download", "archery_scores.csv");
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
 }
 
-// Initial load: Populate table if already have saved scores and update stats
+// Initial load
 allScores.forEach(r => appendRow(r));
 currentRound = allScores.length + 1;
 document.getElementById('currentRound').textContent = currentRound;
