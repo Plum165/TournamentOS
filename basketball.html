@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" class="dark" data-theme="dark-emerald">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basketball Module | TournamentOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Custom styles for the Bracket Tree */
+        .bracket-col { position: relative; }
+        .bracket-match { position: relative; }
+        .bracket-match::after {
+            content: ''; position: absolute; right: -20px; top: 50%; width: 20px; border-bottom: 2px solid rgba(255,255,255,0.1);
+        }
+        .bracket-col:last-child .bracket-match::after { display: none; }
+    </style>
+</head>
+<body class="overflow-hidden text-white transition-colors duration-300">
+
+    <div class="flex h-screen w-full relative">
+        
+        <!-- SIDE NAVIGATION -->
+        <aside class="w-64 glass h-full flex flex-col hidden md:flex z-20 relative">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent flex items-center gap-2">
+                    <i data-lucide="dribbble" class="w-6 h-6 text-orange-500"></i>
+                    TournamentOS
+                </h1>
+                <p class="text-xs tracking-widest uppercase opacity-50 mt-1">Basketball Module</p>
+            </div>
+            
+            <nav class="flex-1 px-4 space-y-2">
+                <a href="#" onclick="switchView('setup')" class="sidebar-item active-nav flex items-center gap-3 p-3 rounded-lg transition-all group">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>Roster Setup</span>
+                </a>
+                <a href="#" onclick="switchView('scoring')" class="sidebar-item flex items-center gap-3 p-3 rounded-lg transition-all opacity-70 hover:opacity-100">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <span>Active Game</span>
+                </a>
+                <a href="#" onclick="switchView('tournament')" class="sidebar-item flex items-center gap-3 p-3 rounded-lg transition-all opacity-70 hover:opacity-100">
+                    <i data-lucide="trophy" class="w-5 h-5"></i>
+                    <span>Tournament</span>
+                </a>
+            </nav>
+
+            <div class="p-4 mt-auto border-t border-white/10">
+                <a href="#" onclick="switchView('settings')" class="sidebar-item flex items-center gap-3 p-3 rounded-lg opacity-70 hover:opacity-100">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Theme / Settings</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col overflow-y-auto bg-transparent relative z-10">
+            
+            <header class="h-16 flex items-center justify-between px-8 border-b border-white/5 sticky top-0 z-10 glass">
+                <h2 id="view-title" class="text-xl font-semibold">Roster Setup</h2>
+            </header>
+
+            <!-- VIEW: SETUP (ROSTER & TEAMS) -->
+            <section id="view-setup" class="p-8 space-y-8 animate-in fade-in duration-500 block pb-24">
+                <div class="max-w-5xl mx-auto space-y-8">
+                    
+                    <div class="text-center mb-10">
+                        <h3 class="text-3xl font-bold mb-2">Build Matchup</h3>
+                        <p class="opacity-60">Set team names and add players to the rosters.</p>
+                    </div>
+
+                    <!-- Team Names -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="glass p-6 rounded-2xl shadow-xl border-t-4 border-t-blue-500">
+                            <label class="text-xs font-bold uppercase tracking-widest text-blue-400 mb-2 block">Team A Name</label>
+                            <input type="text" id="teamAName" value="Home Team" onchange="updateTeamNames()" class="w-full bg-black/30 border border-white/20 rounded-lg px-4 py-3 outline-none focus:border-blue-500 font-bold text-lg">
+                        </div>
+                        <div class="glass p-6 rounded-2xl shadow-xl border-t-4 border-t-red-500">
+                            <label class="text-xs font-bold uppercase tracking-widest text-red-400 mb-2 block">Team B Name</label>
+                            <input type="text" id="teamBName" value="Away Team" onchange="updateTeamNames()" class="w-full bg-black/30 border border-white/20 rounded-lg px-4 py-3 outline-none focus:border-red-500 font-bold text-lg">
+                        </div>
+                    </div>
+
+                    <!-- Add Player Form -->
+                    <div class="glass p-6 rounded-2xl shadow-xl">
+                        <div class="flex flex-col md:flex-row gap-4 items-end">
+                            <div class="flex-1 w-full">
+                                <label class="text-xs font-bold uppercase tracking-widest opacity-60 mb-2 block">Player Name</label>
+                                <input type="text" id="playerName" placeholder="e.g. Michael Jordan" class="w-full bg-black/30 border border-white/20 rounded-lg px-4 py-3 outline-none focus:border-orange-500">
+                            </div>
+                            <div class="w-full md:w-32">
+                                <label class="text-xs font-bold uppercase tracking-widest opacity-60 mb-2 block">Jersey #</label>
+                                <input type="number" id="playerNum" placeholder="23" class="w-full bg-black/30 border border-white/20 rounded-lg px-4 py-3 outline-none focus:border-orange-500">
+                            </div>
+                            <div class="w-full md:w-48">
+                                <label class="text-xs font-bold uppercase tracking-widest opacity-60 mb-2 block">Assign To</label>
+                                <select id="playerTeam" class="w-full bg-black/30 border border-white/20 rounded-lg px-4 py-3 outline-none focus:border-orange-500">
+                                    <option value="A" id="optTeamA">Team A</option>
+                                    <option value="B" id="optTeamB">Team B</option>
+                                </select>
+                            </div>
+                            <button onclick="addPlayer()" class="w-full md:w-auto px-6 py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="user-plus" class="w-5 h-5"></i> Add
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Current Roster Display -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="glass p-6 rounded-2xl shadow-xl">
+                            <h4 class="font-bold mb-4 text-blue-400 border-b border-white/10 pb-2" id="displayTeamA">Team A Roster</h4>
+                            <div id="rosterListA" class="space-y-2"></div>
+                        </div>
+                        <div class="glass p-6 rounded-2xl shadow-xl">
+                            <h4 class="font-bold mb-4 text-red-400 border-b border-white/10 pb-2" id="displayTeamB">Team B Roster</h4>
+                            <div id="rosterListB" class="space-y-2"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 text-center">
+                        <button onclick="startGame()" class="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-emerald-500/25 flex items-center gap-2 mx-auto text-lg">
+                            <i data-lucide="play" class="w-6 h-6"></i> Enter Match Scoring
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: SCORING INTERFACE -->
+            <section id="view-scoring" class="p-8 hidden animate-in slide-in-from-bottom-4 duration-500 pb-24">
+                <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    
+                    <!-- Left Column: Players & Input -->
+                    <div class="lg:col-span-5 space-y-6">
+                        
+                        <!-- Dual Scoreboard -->
+                        <div class="glass p-6 rounded-2xl text-center shadow-xl flex justify-between items-center">
+                            <div class="flex-1">
+                                <h3 class="text-xs uppercase tracking-widest opacity-60 font-bold mb-1 truncate" id="scoreNameA">Team A</h3>
+                                <div class="text-5xl font-black text-blue-400 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]" id="teamAScore">0</div>
+                            </div>
+                            <div class="px-4 text-2xl font-black opacity-30">-</div>
+                            <div class="flex-1">
+                                <h3 class="text-xs uppercase tracking-widest opacity-60 font-bold mb-1 truncate" id="scoreNameB">Team B</h3>
+                                <div class="text-5xl font-black text-red-400 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]" id="teamBScore">0</div>
+                            </div>
+                        </div>
+
+                        <!-- Team Toggle -->
+                        <div class="flex p-1 glass rounded-xl">
+                            <button onclick="switchScoringTeam('A')" id="btnToggleA" class="flex-1 py-2 text-sm font-bold rounded-lg transition-all bg-blue-500 text-white shadow-lg">Scoring Team A</button>
+                            <button onclick="switchScoringTeam('B')" id="btnToggleB" class="flex-1 py-2 text-sm font-bold rounded-lg transition-all opacity-50 hover:opacity-100">Scoring Team B</button>
+                        </div>
+
+                        <!-- Player Selection Grid -->
+                        <div class="glass p-6 rounded-2xl shadow-xl">
+                            <h4 class="text-sm uppercase tracking-widest opacity-60 mb-4 font-bold flex items-center justify-between">
+                                <span>1. Select Player</span>
+                                <span class="text-xs bg-white/10 px-2 py-1 rounded" id="activeTeamLabel">Team A Active</span>
+                            </h4>
+                            <div id="activePlayerGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-[200px] overflow-y-auto pr-2">
+                                <!-- Active Players injected here -->
+                            </div>
+                        </div>
+
+                        <!-- Keypad -->
+                        <div class="glass p-6 rounded-2xl shadow-xl relative" id="scoringKeypadContainer">
+                            <div id="keypadOverlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl z-10 flex items-center justify-center border border-white/10">
+                                <p class="font-bold text-orange-400 animate-pulse"><i data-lucide="mouse-pointer-click" class="inline w-5 h-5 mb-1"></i> Select a player first</p>
+                            </div>
+                            <h4 class="text-sm uppercase tracking-widest opacity-60 mb-4 font-bold flex justify-between">
+                                <span>2. Record Action</span>
+                                <span id="activePlayerNameDisplay" class="text-orange-400 font-bold"></span>
+                            </h4>
+                            <div class="grid grid-cols-2 gap-3 mb-3">
+                                <button onclick="addStat('2PT')" class="keypad-btn bg-emerald-600 text-white hover:bg-emerald-500">+2 Normal (FG)</button>
+                                <button onclick="addStat('3PT')" class="keypad-btn bg-purple-600 text-white hover:bg-purple-500">+3 3-Pointer</button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="addStat('FT')" class="keypad-btn bg-white text-black hover:bg-gray-200">+1 Free Throw</button>
+                                <button onclick="addStat('FOUL')" class="keypad-btn bg-red-600 text-white hover:bg-red-500 border-2 border-red-400 flex justify-center items-center gap-2">
+                                    <i data-lucide="alert-octagon" class="w-5 h-5"></i> Foul
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Right Column: Box Score -->
+                    <div class="lg:col-span-7 flex flex-col gap-6">
+                        <div class="glass rounded-2xl overflow-hidden flex-1 flex flex-col shadow-xl">
+                            <div class="p-4 border-b border-white/10 bg-white/5 flex justify-between items-center">
+                                <h4 class="font-bold flex items-center gap-2"><i data-lucide="clipboard-list" class="w-5 h-5 text-orange-400"></i> Match Box Score</h4>
+                                <div class="flex gap-2">
+                                    <button onclick="exportBoxScore()" class="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 text-xs font-bold transition-colors">Export CSV</button>
+                                </div>
+                            </div>
+                            <div class="overflow-y-auto flex-1 p-0 min-h-[400px]">
+                                <table class="w-full text-center text-sm">
+                                    <thead class="bg-black/30 backdrop-blur-md sticky top-0 text-xs uppercase tracking-widest opacity-80">
+                                        <tr>
+                                            <th class="py-3 px-4 text-left">Player</th>
+                                            <th>PTS</th>
+                                            <th>FGM (2s)</th>
+                                            <th>3PM</th>
+                                            <th>FTM</th>
+                                            <th class="text-red-400">Fouls</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="boxScoreBody" class="divide-y divide-white/5">
+                                        <!-- Player rows injected here via JS (Grouped by team) -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: TOURNAMENT FORMATS -->
+            <section id="view-tournament" class="p-8 hidden animate-in fade-in duration-500 pb-24">
+                <div class="max-w-6xl mx-auto space-y-8">
+                    
+                    <div id="tournament-menu">
+                        <div class="text-center mb-10">
+                            <h3 class="text-3xl font-bold mb-2">Tournament Formats</h3>
+                            <p class="opacity-60">Choose a structure for your competition.</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Card 1: Round Robin -->
+                            <div onclick="openRoundRobinBuilder()" class="glass p-6 rounded-2xl shadow-xl flex flex-col hover:border-orange-500 transition-colors cursor-pointer group border-2 border-orange-500/30">
+                                <i data-lucide="list-ordered" class="w-10 h-10 text-orange-400 mb-4 group-hover:scale-110 transition-transform"></i>
+                                <h4 class="text-xl font-bold mb-2">Round Robin (Groups)</h4>
+                                <p class="text-sm opacity-60 flex-1 mb-4">Everyone plays everyone. Generates all round matchups.</p>
+                                <button class="w-full py-2 bg-orange-600 rounded-lg font-bold text-sm">Build Schedule</button>
+                            </div>
+                            <!-- Card 2: Pool Play -->
+                            <div class="glass p-6 rounded-2xl shadow-xl flex flex-col hover:border-blue-500 transition-colors cursor-pointer group">
+                                <i data-lucide="layout-grid" class="w-10 h-10 text-blue-400 mb-4 group-hover:scale-110 transition-transform"></i>
+                                <h4 class="text-xl font-bold mb-2">Pool Play / Group Stage</h4>
+                                <p class="text-sm opacity-60 flex-1 mb-4">Teams are divided into groups (e.g., 8 groups of 4) before knockouts.</p>
+                                <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Coming Soon</span>
+                            </div>
+                            <!-- Card 3: Bracket -->
+                            <div onclick="openBracketBuilder()" class="glass p-6 rounded-2xl shadow-xl flex flex-col hover:border-emerald-500 transition-colors cursor-pointer group border-2 border-emerald-500/30">
+                                <i data-lucide="git-merge" class="w-10 h-10 text-emerald-400 mb-4 group-hover:scale-110 transition-transform"></i>
+                                <h4 class="text-xl font-bold mb-2">Elimination Bracket</h4>
+                                <p class="text-sm opacity-60 flex-1 mb-4">Single elimination. Generates bracket. Odd numbers act as byes.</p>
+                                <button class="w-full py-2 bg-emerald-600 rounded-lg font-bold text-sm">Build Bracket</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ROUND ROBIN BUILDER UI -->
+                    <div id="round-robin-builder" class="hidden space-y-6">
+                        <div class="flex items-center justify-between glass p-4 rounded-xl shadow-xl">
+                            <button onclick="closeRoundRobinBuilder()" class="flex items-center gap-2 text-sm opacity-70 hover:opacity-100 font-bold transition-opacity">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Formats
+                            </button>
+                            <div class="flex items-center gap-4">
+                                <label class="font-bold text-sm uppercase tracking-widest text-orange-400">Total Teams:</label>
+                                <input type="number" id="roundRobinTeamCount" value="8" min="3" max="32" class="bg-black/40 border border-white/20 rounded px-3 py-1 w-20 text-center font-bold outline-none focus:border-orange-500">
+                                <button onclick="generateRoundRobin()" class="px-4 py-1.5 bg-orange-600 hover:bg-orange-500 rounded text-sm font-bold transition-colors">Generate Rounds</button>
+                            </div>
+                        </div>
+                        <p class="text-xs opacity-50 text-center">Tip: Odd numbers automatically grant one team a "BYE" per round. You can click on "Team X" to rename them.</p>
+                        
+                        <!-- Visual Round Robin Area -->
+                        <div class="glass p-6 rounded-2xl shadow-xl overflow-x-auto min-h-[500px]">
+                            <div id="round-robin-container" class="flex gap-6 min-w-max pb-8 items-start">
+                                <p class="opacity-50 text-center w-full mt-10">Enter number of teams and click Generate Rounds.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BRACKET BUILDER UI -->
+                    <div id="bracket-builder" class="hidden space-y-6">
+                        <div class="flex items-center justify-between glass p-4 rounded-xl shadow-xl">
+                            <button onclick="closeBracketBuilder()" class="flex items-center gap-2 text-sm opacity-70 hover:opacity-100 font-bold">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Formats
+                            </button>
+                            <div class="flex items-center gap-4">
+                                <label class="font-bold text-sm uppercase tracking-widest text-emerald-400">Total Teams:</label>
+                                <input type="number" id="bracketTeamCount" value="8" min="2" max="64" class="bg-black/40 border border-white/20 rounded px-3 py-1 w-20 text-center font-bold outline-none focus:border-emerald-500">
+                                <button onclick="generateBracket()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded text-sm font-bold">Generate Tree</button>
+                            </div>
+                        </div>
+                        <p class="text-xs opacity-50 text-center">Tip: For odd numbers, the system generates the next power of 2. Simply type team names to advance them manually (acting as a bye).</p>
+                        
+                        <!-- Visual Bracket Area -->
+                        <div class="glass p-6 rounded-2xl shadow-xl overflow-x-auto min-h-[500px]">
+                            <div id="bracket-container" class="flex gap-12 min-w-max pb-8">
+                                <p class="opacity-50 text-center w-full mt-10">Enter number of teams and click Generate Tree.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- VIEW: SETTINGS -->
+            <section id="view-settings" class="p-8 hidden animate-in fade-in duration-500 pb-24">
+                <div class="max-w-4xl mx-auto space-y-6">
+                    <h3 class="text-2xl font-bold mb-6">Settings & Customization</h3>
+                    <div class="glass p-6 rounded-2xl shadow-xl">
+                        <h4 class="font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="palette" class="w-5 h-5"></i> Interface Theme
+                        </h4>
+                        <div id="theme-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+                    </div>
+
+                    <div class="glass p-6 rounded-2xl border border-red-500/20 shadow-xl">
+                        <h4 class="font-bold mb-4 text-red-400 flex items-center gap-2">
+                            <i data-lucide="alert-triangle" class="w-5 h-5"></i> Danger Zone
+                        </h4>
+                        <button onclick="clearAllData()" class="px-4 py-3 bg-red-600/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-600 hover:text-white transition-all font-bold">
+                            Reset All Basketball Data & Roster
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <a href="index.html" class="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 glass rounded-full shadow-2xl hover:bg-orange-500/20 hover:border-orange-500/50 transition-all duration-300 group cursor-pointer backdrop-blur-xl">
+            <span class="text-sm font-bold tracking-wide uppercase">Back to OS</span>
+            <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-orange-500 transition-colors">
+                <i data-lucide="arrow-up-right" class="w-4 h-4 text-white group-hover:text-black"></i>
+            </div>
+        </a>
+
+    </div>
+
+    <script src="basketball.js"></script>
+</body>
+</html>

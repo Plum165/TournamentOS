@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en" class="dark" data-theme="dark-emerald">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archery Module | TournamentOS</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Theme Styles -->
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Custom styles for the Bracket Tree */
+        .bracket-col { position: relative; }
+        .bracket-match { position: relative; }
+        .bracket-match::after {
+            content: ''; position: absolute; right: -20px; top: 50%; width: 20px; border-bottom: 2px solid rgba(255,255,255,0.1);
+        }
+        .bracket-col:last-child .bracket-match::after { display: none; }
+    </style>
+</head>
+<body class="overflow-hidden text-white transition-colors duration-300">
+
+    <div class="flex h-screen w-full relative">
+        
+        <!-- SIDE NAVIGATION -->
+        <aside class="w-64 glass h-full flex flex-col hidden md:flex z-20 relative">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">
+                    TournamentOS
+                </h1>
+                <p class="text-xs tracking-widest uppercase opacity-50 mt-1">Archery Module</p>
+            </div>
+            
+            <nav class="flex-1 px-4 space-y-2">
+                <a href="#" onclick="switchView('setup')" class="sidebar-item active-nav flex items-center gap-3 p-3 rounded-lg transition-all group">
+                    <i data-lucide="target" class="w-5 h-5"></i>
+                    <span>Setup Session</span>
+                </a>
+                <a href="#" onclick="switchView('scoring')" class="sidebar-item flex items-center gap-3 p-3 rounded-lg transition-all opacity-70 hover:opacity-100">
+                    <i data-lucide="pen-tool" class="w-5 h-5"></i>
+                    <span>Active Scoring</span>
+                </a>
+                <a href="#" onclick="switchView('tournament')" class="sidebar-item flex items-center gap-3 p-3 rounded-lg transition-all opacity-70 hover:opacity-100">
+                    <i data-lucide="trophy" class="w-5 h-5"></i>
+                    <span>Tournaments</span>
+                </a>
+            </nav>
+
+            <div class="p-4 mt-auto border-t border-white/10">
+                <a href="#" onclick="switchView('settings')" class="sidebar-item flex items-center gap-3 p-3 rounded-lg opacity-70 hover:opacity-100">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Theme / Settings</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col overflow-y-auto bg-transparent relative z-10">
+            
+            <header class="h-16 flex items-center justify-between px-8 border-b border-white/5 sticky top-0 z-10 glass">
+                <h2 id="view-title" class="text-xl font-semibold">Setup Session</h2>
+                <div class="flex items-center gap-4">
+                    <span id="selected-format-badge" class="hidden px-3 py-1 rounded-full bg-white/20 text-xs font-bold uppercase tracking-wider backdrop-blur-md"></span>
+                </div>
+            </header>
+
+            <!-- VIEW: SETUP -->
+            <section id="view-setup" class="p-8 space-y-8 animate-in fade-in duration-500 block pb-24">
+                <div class="max-w-4xl mx-auto space-y-8">
+                    <div class="text-center mb-10">
+                        <h3 class="text-3xl font-bold mb-2">Configure Archery Session</h3>
+                        <p class="opacity-60">Select your format to begin scoring.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div onclick="startSession('indoor')" class="glass rounded-2xl p-8 cursor-pointer hover:bg-white/10 transition-all border-2 border-transparent hover:border-emerald-500/50 group text-center shadow-xl">
+                            <i data-lucide="home" class="w-12 h-12 mx-auto mb-4 text-blue-400 group-hover:scale-110 transition-transform"></i>
+                            <h4 class="text-2xl font-bold mb-2">Indoor Format</h4>
+                            <p class="opacity-60 text-sm">Standard 18m rounds. X button disabled. Tracks 9s and 10s.</p>
+                        </div>
+                        <div onclick="startSession('outdoor')" class="glass rounded-2xl p-8 cursor-pointer hover:bg-white/10 transition-all border-2 border-transparent hover:border-emerald-500/50 group text-center shadow-xl">
+                            <i data-lucide="sun" class="w-12 h-12 mx-auto mb-4 text-orange-400 group-hover:scale-110 transition-transform"></i>
+                            <h4 class="text-2xl font-bold mb-2">Outdoor Format</h4>
+                            <p class="opacity-60 text-sm">Long distances. X button enabled. Tracks 10s and 10s+X.</p>
+                        </div>
+                    </div>
+
+                    <div class="glass p-6 rounded-2xl flex items-center gap-4 justify-between shadow-xl">
+                        <div>
+                            <label class="font-bold block mb-1">Total Rounds for this Session:</label>
+                            <p class="text-xs opacity-60">Usually 10 or 20 ends of 3 arrows.</p>
+                        </div>
+                        <select id="numRounds" class="bg-black/30 border border-white/20 rounded-lg px-4 py-2 w-24 text-center font-bold text-xl outline-none focus:border-emerald-500">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                        <a href="https://www.sanaa.org.za/how-to-score/" target="_blank" class="flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                            <i data-lucide="external-link" class="w-5 h-5 text-emerald-400"></i>
+                            <div><h5 class="font-bold text-sm">How to Score</h5><p class="text-xs opacity-60">Learn the official scoring rules (SANAA).</p></div>
+                        </a>
+                        <a href="https://www.worldarchery.sport/sport/history" target="_blank" class="flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                            <i data-lucide="book-open" class="w-5 h-5 text-blue-400"></i>
+                            <div><h5 class="font-bold text-sm">History of the Sport</h5><p class="text-xs opacity-60">Read how archery came to be.</p></div>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: SCORING INTERFACE -->
+            <section id="view-scoring" class="p-8 hidden animate-in slide-in-from-bottom-4 duration-500 pb-24">
+                <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <!-- Left Column: Input -->
+                    <div class="lg:col-span-5 space-y-6">
+                        <div class="glass p-6 rounded-2xl text-center shadow-xl">
+                            <h3 class="text-sm uppercase tracking-widest opacity-60 mb-4 font-bold">Current Round: <span id="currentRound" class="text-emerald-400 text-lg">1</span> / <span id="totalRoundsDisplay">20</span></h3>
+                            <div class="flex justify-center gap-4 mb-6">
+                                <div id="arrow1" class="w-16 h-16 rounded-xl bg-black/30 border-2 border-white/10 flex items-center justify-center text-3xl font-bold shadow-inner">-</div>
+                                <div id="arrow2" class="w-16 h-16 rounded-xl bg-black/30 border-2 border-white/10 flex items-center justify-center text-3xl font-bold shadow-inner">-</div>
+                                <div id="arrow3" class="w-16 h-16 rounded-xl bg-black/30 border-2 border-white/10 flex items-center justify-center text-3xl font-bold shadow-inner">-</div>
+                            </div>
+                            <div class="flex gap-2 justify-center">
+                                <button onclick="clearArrow()" class="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/40 text-sm font-bold flex items-center gap-2 transition-colors">
+                                    <i data-lucide="delete" class="w-4 h-4"></i> Clear Last
+                                </button>
+                                <button onclick="nextRound()" class="px-4 py-2 rounded-lg bg-emerald-500 text-black hover:bg-emerald-400 text-sm font-bold flex items-center gap-2 transition-colors">
+                                    Next Round <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="glass p-6 rounded-2xl shadow-xl">
+                            <div class="grid grid-cols-3 gap-3">
+                                <button id="btn-x" onclick="addScore('X')" class="keypad-btn bg-yellow-400 text-black transition-all">X</button>
+                                <button onclick="addScore(10)" class="keypad-btn bg-yellow-400 text-black">10</button>
+                                <button onclick="addScore(9)" class="keypad-btn bg-yellow-400 text-black">9</button>
+                                <button onclick="addScore(8)" class="keypad-btn bg-red-500 text-white">8</button>
+                                <button onclick="addScore(7)" class="keypad-btn bg-red-500 text-white">7</button>
+                                <button onclick="addScore(6)" class="keypad-btn bg-blue-500 text-white">6</button>
+                                <button onclick="addScore(5)" class="keypad-btn bg-blue-500 text-white">5</button>
+                                <button onclick="addScore(4)" class="keypad-btn bg-gray-800 text-white border border-white/20">4</button>
+                                <button onclick="addScore(3)" class="keypad-btn bg-gray-800 text-white border border-white/20">3</button>
+                                <button onclick="addScore(2)" class="keypad-btn bg-white text-black">2</button>
+                                <button onclick="addScore(1)" class="keypad-btn bg-white text-black">1</button>
+                                <button onclick="addScore('M')" class="keypad-btn bg-neutral-900 text-white border-2 border-red-500/50">M</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Stats -->
+                    <div class="lg:col-span-7 flex flex-col gap-6">
+                        <div class="grid grid-cols-4 gap-4">
+                            <div class="glass p-4 rounded-xl text-center shadow-xl"><p class="text-xs opacity-60 mb-1">Arrows</p><p id="totalArrows" class="text-2xl font-bold">0</p></div>
+                            <div class="glass p-4 rounded-xl text-center shadow-xl"><p class="text-xs opacity-60 mb-1">Score</p><p id="totalPoints" class="text-2xl font-bold text-emerald-400">0</p></div>
+                            <div class="glass p-4 rounded-xl text-center shadow-xl"><p class="text-xs opacity-60 mb-1">Avg Arrow</p><p id="avgArrow" class="text-2xl font-bold">0</p></div>
+                            <div class="glass p-4 rounded-xl text-center shadow-xl"><p class="text-xs opacity-60 mb-1">Miss %</p><p id="missPercent" class="text-2xl font-bold text-red-400">0%</p></div>
+                        </div>
+
+                        <div class="glass rounded-2xl overflow-hidden flex-1 flex flex-col min-h-[300px] shadow-xl">
+                            <div class="p-4 border-b border-white/10 bg-white/5 flex justify-between items-center">
+                                <h4 class="font-bold">Score Sheet</h4>
+                                <div class="flex gap-2">
+                                    <button onclick="exportExcel()" class="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 text-xs font-bold transition-colors">Export CSV</button>
+                                    <button onclick="finishSession()" class="px-3 py-1 rounded-md bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/40 text-xs font-bold transition-colors">End Session</button>
+                                </div>
+                            </div>
+                            <div class="overflow-y-auto flex-1 p-0">
+                                <table id="scoreTable" class="w-full text-center text-sm">
+                                    <thead class="bg-black/90 backdrop-blur-md sticky top-0 text-xs uppercase tracking-widest text-white shadow-md z-10">
+                                        <tr>
+                                            <th class="py-3">End</th><th>Arr 1</th><th>Arr 2</th><th>Arr 3</th>
+                                            <th class="text-emerald-400">ET</th><th class="text-blue-400">RT</th>
+                                            <th id="th-stat1">9s</th><th id="th-stat2">10s</th><th>Miss</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-white/5"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: TOURNAMENT / RANKINGS -->
+            <section id="view-tournament" class="p-8 hidden animate-in fade-in duration-500 pb-24">
+                <div class="max-w-6xl mx-auto space-y-8">
+                    
+                    <!-- Top Controls / File Upload -->
+                    <div id="tournament-setup-view" class="space-y-6">
+                        <div class="text-center mb-8">
+                            <h3 class="text-3xl font-bold mb-2">Rankings & Eliminations</h3>
+                            <p class="opacity-60">Add participants manually or upload a CSV file.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Add Manual -->
+                            <div class="glass p-6 rounded-2xl shadow-xl flex flex-col gap-4">
+                                <h4 class="font-bold border-b border-white/10 pb-2 flex items-center gap-2"><i data-lucide="user-plus" class="w-5 h-5 text-emerald-400"></i> Add Participant</h4>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <input type="text" id="partName" placeholder="Name" class="bg-black/40 border border-white/20 rounded px-3 py-2 outline-none focus:border-emerald-500">
+                                    <input type="number" id="partPoints" placeholder="Total Pts" class="bg-black/40 border border-white/20 rounded px-3 py-2 outline-none focus:border-emerald-500">
+                                    <input type="text" id="partCategory" placeholder="Category (e.g. Compound)" class="bg-black/40 border border-white/20 rounded px-3 py-2 outline-none focus:border-emerald-500">
+                                    <input type="text" id="partTeam" placeholder="Team/Club (Optional)" class="bg-black/40 border border-white/20 rounded px-3 py-2 outline-none focus:border-emerald-500">
+                                </div>
+                                <button onclick="addParticipant()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded transition-colors mt-auto">Add to Rankings</button>
+                            </div>
+
+                            <!-- Upload CSV -->
+                            <div class="glass p-6 rounded-2xl shadow-xl flex flex-col gap-4 items-center justify-center border-2 border-dashed border-white/20 hover:border-emerald-500/50 transition-colors">
+                                <i data-lucide="upload-cloud" class="w-10 h-10 text-emerald-400 mb-2"></i>
+                                <div class="text-center">
+                                    <h4 class="font-bold">Upload CSV List</h4>
+                                    <p class="text-xs opacity-50 mb-4">Format: Name, Points, Category, Team</p>
+                                </div>
+                                <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleCSVUpload(event)">
+                                <label for="csvFileInput" class="cursor-pointer px-6 py-2 bg-white/10 hover:bg-white/20 font-bold rounded-lg transition-colors border border-white/10">Select File</label>
+                            </div>
+                        </div>
+
+                        <!-- Data Table & Generate Buttons -->
+                        <div class="glass p-6 rounded-2xl shadow-xl">
+                            <div class="flex justify-between items-end mb-4 border-b border-white/10 pb-4">
+                                <div>
+                                    <h4 class="font-bold text-xl flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-5 h-5 text-emerald-400"></i> Current Rankings</h4>
+                                    <p class="text-xs opacity-50" id="participantCount">0 Participants</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="showCategorySelection('single')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold text-sm shadow-lg flex items-center gap-2"><i data-lucide="git-merge" class="w-4 h-4"></i> Single Elimination</button>
+                                    <button onclick="showCategorySelection('team')" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded font-bold text-sm shadow-lg flex items-center gap-2"><i data-lucide="users" class="w-4 h-4"></i> Team Elimination</button>
+                                </div>
+                            </div>
+
+                            <div class="overflow-y-auto max-h-[400px]">
+                                <table class="w-full text-left text-sm">
+                                    <!-- FIXED BUG: Added opaque background (bg-black/90) and z-10 so scrolling rows don't overlap headers -->
+                                    <thead class="bg-black/90 backdrop-blur-md sticky top-0 z-10 text-xs uppercase tracking-widest text-white shadow-md">
+                                        <tr>
+                                            <th class="py-3 px-4">Rank</th>
+                                            <th>Name</th>
+                                            <th>Category</th>
+                                            <th>Team/Club</th>
+                                            <th class="text-emerald-400">Points</th>
+                                            <th class="text-right px-4">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="participantsTableBody" class="divide-y divide-white/5 relative z-0">
+                                        <!-- Injected by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: CATEGORY SELECTION VIEW (New feature) -->
+                    <div id="tournament-category-view" class="hidden space-y-6">
+                        <div class="flex items-center justify-between glass p-4 rounded-xl shadow-xl">
+                            <button onclick="backToRankings()" class="flex items-center gap-2 text-sm opacity-70 hover:opacity-100 font-bold">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Rankings
+                            </button>
+                            <h4 id="catSelectionTitle" class="font-bold text-emerald-400 uppercase tracking-widest">Select Category</h4>
+                        </div>
+                        
+                        <div class="glass p-10 rounded-2xl shadow-xl text-center">
+                            <h3 class="text-2xl font-bold mb-2">Choose a Division</h3>
+                            <p class="opacity-50 mb-8 text-sm">Select the category you want to build the bracket for.</p>
+                            
+                            <div id="categoryButtonsContainer" class="flex flex-wrap justify-center gap-4">
+                                <!-- Category buttons injected here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: BRACKET VIEW -->
+                    <div id="tournament-bracket-view" class="hidden space-y-6">
+                        <div class="flex items-center justify-between glass p-4 rounded-xl shadow-xl">
+                            <button onclick="backToCategories()" class="flex items-center gap-2 text-sm opacity-70 hover:opacity-100 font-bold">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Categories
+                            </button>
+                            <h4 id="bracketTitleDisplay" class="font-bold text-emerald-400 uppercase tracking-widest">Bracket</h4>
+                        </div>
+
+                        <!-- Team Rankings Display (Only shows for Team Elimination) -->
+                        <div id="teamRankingsContainer" class="hidden glass p-6 rounded-2xl shadow-xl mb-6">
+                            <h4 class="font-bold border-b border-white/10 pb-2 mb-4 text-purple-400">Team Rankings (In this Category)</h4>
+                            <div id="teamRankingsList" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+                        </div>
+
+                        <!-- Visual Bracket Area -->
+                        <div class="glass p-6 rounded-2xl shadow-xl overflow-x-auto min-h-[500px]">
+                            <div id="archeryBracketContainer" class="flex gap-12 min-w-max pb-8">
+                                <!-- Generated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- VIEW: SETTINGS -->
+            <section id="view-settings" class="p-8 hidden animate-in fade-in duration-500 pb-24">
+                <div class="max-w-4xl mx-auto space-y-6">
+                    <h3 class="text-2xl font-bold mb-6">Settings & Customization</h3>
+                    <div class="glass p-6 rounded-2xl shadow-xl">
+                        <h4 class="font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="palette" class="w-5 h-5"></i> Interface Theme
+                        </h4>
+                        <div id="theme-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+                    </div>
+                
+                    <div class="glass p-6 rounded-2xl border border-red-500/20 shadow-xl">
+                        <h4 class="font-bold mb-4 text-red-400 flex items-center gap-2">
+                            <i data-lucide="alert-triangle" class="w-5 h-5"></i> Danger Zone
+                        </h4>
+                        <button onclick="clearAllData()" class="px-4 py-3 bg-red-600/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-600 hover:text-white transition-all font-bold">
+                            Reset All Archery Data & Participants
+                        </button>
+                        <p class="text-xs opacity-50 mt-2">This will permanently delete your session scores and tournament lists from this browser.</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- FLOATING BOTTOM RIGHT "BACK TO OS" BUTTON -->
+        <a href="index.html" class="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 glass rounded-full shadow-2xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 group cursor-pointer backdrop-blur-xl">
+            <span class="text-sm font-bold tracking-wide uppercase">Back to OS</span>
+            <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-emerald-500 transition-colors">
+                <i data-lucide="arrow-up-right" class="w-4 h-4 text-white group-hover:text-black"></i>
+            </div>
+        </a>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

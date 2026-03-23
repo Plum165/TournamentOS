@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark-emerald">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Archery Score Tracker</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+  <div class="theme-selector glass">
+    <label for="theme-dropdown">Select Theme:</label>
+    <select id="theme-dropdown" class="input">
+      <option value="dark-emerald">Dark Emerald</option>
+      <option value="emerald-red">Emerald & Red</option>
+      <option value="dark-blue-cyan">Dark Blue & Cyan</option>
+      <option value="dark-blue-electric">Dark Blue & Electric</option>
+      <option value="dark-blue-teal">Dark Blue & Teal</option>
+      <option value="dark-blue-indigo">Dark Blue & Indigo</option>
+      <option value="dark-emerald-blue">Dark Emerald-Blue</option>
+      <option value="blood-red">Blood Red</option>
+      <option value="sapphire-steel">Sapphire Steel</option>
+      <option value="emerald-charcoal">Emerald Charcoal</option>
+      <option value="digital-twilight">Digital Twilight</option>
+      <option value="coral-aqua">Coral Aqua</option>
+      <option value="electric-citrus">Electric Citrus</option>
+      <option value="artisan-clay">Artisan Clay</option>
+      <option value="forest-canopy">Forest Canopy</option>
+      <option value="ocean-depth">Ocean Depth</option>
+      <option value="desert-sunset">Desert Sunset</option>
+      <option value="monochrome-focus">Monochrome Focus</option>
+      <option value="soft-nordic">Soft Nordic</option>
+      <option value="neutral-peach">Neutral Peach</option>
+      <option value="retro-pop">Retro Pop</option>
+      <option value="cyberpunk-glow">Cyberpunk Glow</option>
+      <option value="plum-gold">Plum Gold</option>
+      <option value="red-blue">Red Blue</option>
+      <option value="purple-black">Purple Black</option>
+      <option value="cat-noir">Cat Noir</option>
+      <option value="spiderman">Spiderman</option>
+    </select>
+  </div>
+
+  <h1>Archery Score Tracker</h1>
+
+  <!-- Main Application Section (Always visible) -->
+  <div id="appSection" class="app-section">
+    <!-- Removed user-display as it's not needed for local storage -->
+
+    <div class="controls glass">
+      <label>Number of Rounds: 
+        <select id="numRounds" class="input">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+        </select>
+      </label>
+    </div>
+
+    <h3 class="current-round">Current Round: <span id="currentRound">1</span></h3>
+
+    <div class="arrow-blocks glass">
+      <div>Arrow 1: <span id="arrow1">-</span></div>
+      <div>Arrow 2: <span id="arrow2">-</span></div>
+      <div>Arrow 3: <span id="arrow3">-</span></div>
+    </div>
+
+    <div class="arrow-buttons">
+      <button class="btn btn-score" onclick="addScore(1)">1</button>
+      <button class="btn btn-score" onclick="addScore(2)">2</button>
+      <button class="btn btn-score" onclick="addScore(3)">3</button>
+      <button class="btn btn-score" onclick="addScore(4)">4</button>
+      <button class="btn btn-score" onclick="addScore(5)">5</button>
+      <button class="btn btn-score" onclick="addScore(6)">6</button>
+      <button class="btn btn-score" onclick="addScore(7)">7</button>
+      <button class="btn btn-score" onclick="addScore(8)">8</button>
+      <button class="btn btn-score" onclick="addScore(9)">9</button>
+      <button class="btn btn-score" onclick="addScore(10)">10</button>
+      <button class="btn btn-score" onclick="addScore('X')">X</button>
+      <button class="btn btn-score" onclick="addScore('M')">M</button>
+      <button class="btn btn-clear" onclick="clearArrow()">Clear Last</button>
+    </div>
+
+    <div class="session-actions">
+      <button class="btn btn-primary" onclick="nextRound()">Next Round</button>
+      <button class="btn btn-ghost" onclick="finishSession()">Session Done</button>
+      <button class="btn btn-ghost" onclick="exportExcel()">Export to Excel</button>
+      <button class="btn btn-ghost btn-reset-all" onclick="clearAllData()">Clear All Stored Data</button> <!-- New button -->
+    </div>
+
+    <h3 class="table-title">Score Table</h3>
+    <div class="table-container glass">
+      <table id="scoreTable">
+        <thead>
+          <tr>
+            <th>Round</th>
+            <th>Arrow 1</th>
+            <th>Arrow 2</th>
+            <th>Arrow 3</th>
+            <th>End Total (ET)</th>
+            <th>Round Total (RT)</th>
+            <th>9'</th>
+            <th>10'</th>
+            <th>Miss</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="stats" class="glass">
+      <span>Total Arrows: <span id="totalArrows">0</span></span>
+      <span>Total Points: <span id="totalPoints">0</span></span>
+      <span>Avg Points/Arrow: <span id="avgArrow">0</span></span>
+      <span>Miss %: <span id="missPercent">0%</span></span>
+    </div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
