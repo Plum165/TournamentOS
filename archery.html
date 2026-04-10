@@ -89,16 +89,7 @@
                         </div>
                     </div>
 
-                    <div class="glass p-6 rounded-2xl flex items-center gap-4 justify-between shadow-xl">
-                        <div>
-                            <label class="font-bold block mb-1">Total Rounds for this Session:</label>
-                            <p class="text-xs opacity-60">Usually 10 or 20 ends of 3 arrows.</p>
-                        </div>
-                        <select id="numRounds" class="bg-black/30 border border-white/20 rounded-lg px-4 py-2 w-24 text-center font-bold text-xl outline-none focus:border-emerald-500">
-                            <option value="10">10</option>
-                            <option value="20" selected>20</option>
-                        </select>
-                    </div>
+                    
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
                         <a href="https://www.sanaa.org.za/how-to-score/" target="_blank" class="flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
@@ -116,6 +107,17 @@
             <!-- VIEW: SCORING INTERFACE -->
             <section id="view-scoring" class="p-8 hidden animate-in slide-in-from-bottom-4 duration-500 pb-24">
                 <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <!-- Round Selection (Integrated into the grid) -->
+                    <div class="lg:col-span-12 glass p-6 rounded-2xl flex flex-col sm:flex-row items-center gap-4 justify-between shadow-xl mb-2">
+                        <div class="text-center sm:text-left">
+                            <label class="font-bold block text-sm uppercase tracking-wider">Session Length</label>
+                            <p class="text-xs opacity-60">Select total ends (3 arrows each)</p>
+                        </div>
+                        <div class="flex bg-black/40 rounded-lg p-1 border border-white/10 w-full sm:w-auto">
+                            <button id="btn-round-10" onclick="setRounds(10)" class="flex-1 sm:flex-none px-6 py-2 rounded-md text-sm font-bold text-white/50 hover:text-white transition-all">10 Rounds</button>
+                            <button id="btn-round-20" onclick="setRounds(20)" class="flex-1 sm:flex-none px-6 py-2 rounded-md text-sm font-bold bg-emerald-500 text-black shadow-lg transition-all">20 Rounds</button>
+                        </div>
+                    </div>
                     <!-- Left Column: Input -->
                     <div class="lg:col-span-5 space-y-6">
                         <div class="glass p-6 rounded-2xl text-center shadow-xl">
@@ -338,5 +340,6 @@
     </div>
 
     <script src="script.js"></script>
+    <script src="archery.js"></script>
 </body>
 </html>
