@@ -13,12 +13,9 @@
     <!-- Custom Theme Styles -->
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Custom styles for the Bracket Tree */
         .bracket-col { position: relative; }
         .bracket-match { position: relative; }
-        .bracket-match::after {
-            content: ''; position: absolute; right: -20px; top: 50%; width: 20px; border-bottom: 2px solid rgba(255,255,255,0.1);
-        }
+        .bracket-match::after { content: ''; position: absolute; right: -20px; top: 50%; width: 20px; border-bottom: 2px solid rgba(255,255,255,0.1); }
         .bracket-col:last-child .bracket-match::after { display: none; }
     </style>
 </head>
@@ -77,21 +74,32 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div onclick="startSession('indoor')" class="glass rounded-2xl p-8 cursor-pointer hover:bg-white/10 transition-all border-2 border-transparent hover:border-emerald-500/50 group text-center shadow-xl">
+                        
+                        <div onclick="startSession('indoor'); document.getElementById('outdoor-formats-menu').classList.add('hidden'); document.getElementById('distance-choice').classList.add('hidden');" class="glass rounded-2xl p-8 cursor-pointer hover:bg-white/10 transition-all border-2 border-transparent hover:border-emerald-500/50 group text-center shadow-xl">
                             <i data-lucide="home" class="w-12 h-12 mx-auto mb-4 text-blue-400 group-hover:scale-110 transition-transform"></i>
                             <h4 class="text-2xl font-bold mb-2">Indoor Format</h4>
-                            <p class="opacity-60 text-sm">Standard 18m rounds. X button disabled. Tracks 9s and 10s.</p>
+                            <p class="opacity-60 text-sm">Standard 18m rounds. X button disabled.</p>
                         </div>
-                        <div onclick="startSession('outdoor')" class="glass rounded-2xl p-8 cursor-pointer hover:bg-white/10 transition-all border-2 border-transparent hover:border-emerald-500/50 group text-center shadow-xl">
+                        <div onclick="document.getElementById('outdoor-formats-menu').classList.remove('hidden'); " class="glass rounded-2xl p-8 cursor-pointer hover:bg-white/10 transition-all border-2 border-transparent hover:border-orange-500/50 group text-center shadow-xl">
                             <i data-lucide="sun" class="w-12 h-12 mx-auto mb-4 text-orange-400 group-hover:scale-110 transition-transform"></i>
-                            <h4 class="text-2xl font-bold mb-2">Outdoor Format</h4>
-                            <p class="opacity-60 text-sm">Long distances. X button enabled. Tracks 10s and 10s+X.</p>
+                            <h4 class="text-2xl font-bold mb-2">Outdoor Formats</h4>
+                            <p class="opacity-60 text-sm">Long distances. Includes 720, 1440, and DISA.</p>
                         </div>
                     </div>
 
-                    
+                    <!-- Hidden Outdoor Sub-Menu -->
+                    <div id="outdoor-formats-menu" class="hidden glass p-6 rounded-2xl shadow-xl animate-in slide-in-from-top-4 border-l-4 border-l-orange-500">
+                        <h4 class="font-bold mb-4 text-orange-400">Select Specific Outdoor Format</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <button onclick="startSession('outdoor-720'); document.getElementById('distance-choice').classList.remove('hidden');" class="px-4 py-3 bg-black/40 hover:bg-black/60 border border-white/10 rounded-xl font-bold text-sm transition-colors text-white/70 hover:text-white">720 Round</button>
+                            <button onclick="startSession('outdoor-1440'); document.getElementById('distance-choice').classList.remove('hidden');" class="px-4 py-3 bg-black/40 hover:bg-black/60 border border-white/10 rounded-xl font-bold text-sm transition-colors text-white/70 hover:text-white">1440 (FITA)</button>
+                            <button onclick="startSession('outdoor-disa'); document.getElementById('distance-choice').classList.remove('hidden');" class="px-4 py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2">
+                                <i data-lucide="check-circle-2" class="w-4 h-4"></i> DISA Format
+                            </button>
+                        </div>
+                    </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                    <div id="info-links" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
                         <a href="https://www.sanaa.org.za/how-to-score/" target="_blank" class="flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                             <i data-lucide="external-link" class="w-5 h-5 text-emerald-400"></i>
                             <div><h5 class="font-bold text-sm">How to Score</h5><p class="text-xs opacity-60">Learn the official scoring rules (SANAA).</p></div>
@@ -106,27 +114,54 @@
 
             <!-- VIEW: SCORING INTERFACE -->
             <section id="view-scoring" class="p-8 hidden animate-in slide-in-from-bottom-4 duration-500 pb-24">
-                <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    <!-- Round Selection (Integrated into the grid) -->
-                    <div class="lg:col-span-12 glass p-6 rounded-2xl flex flex-col sm:flex-row items-center gap-4 justify-between shadow-xl mb-2">
-                        <div class="text-center sm:text-left">
-                            <label class="font-bold block text-sm uppercase tracking-wider">Session Length</label>
-                            <p class="text-xs opacity-60">Select total ends (3 arrows each)</p>
+                <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    
+                    <!-- Round & Distance Selection (Hidden during DISA) -->
+                    <div id="standard-scoring-toggles" class="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                        <div id="rounds-choice" class="glass p-6 rounded-2xl flex flex-col sm:flex-row items-center gap-4 justify-between shadow-xl">
+                            <div class="text-center sm:text-left">
+                                <label class="font-bold block text-sm uppercase tracking-wider">Session Length</label>
+                                <p class="text-xs opacity-60">Select total ends (3 arrows)</p>
+                            </div>
+                            <div class="flex bg-black/40 rounded-lg p-1 border border-white/10 w-full sm:w-auto">
+                                <button id="btn-round-10" onclick="setRounds(10)" class="flex-1 px-4 py-2 rounded-md text-sm font-bold transition-all text-white/50 hover:text-white">10 Ends</button>
+                                <button id="btn-round-20" onclick="setRounds(20)" class="flex-1 px-4 py-2 rounded-md text-sm font-bold transition-all bg-emerald-500 text-black shadow-lg">20 Ends</button>
+                            </div>
                         </div>
-                        <div class="flex bg-black/40 rounded-lg p-1 border border-white/10 w-full sm:w-auto">
-                            <button id="btn-round-10" onclick="setRounds(10)" class="flex-1 sm:flex-none px-6 py-2 rounded-md text-sm font-bold text-white/50 hover:text-white transition-all">10 Rounds</button>
-                            <button id="btn-round-20" onclick="setRounds(20)" class="flex-1 sm:flex-none px-6 py-2 rounded-md text-sm font-bold bg-emerald-500 text-black shadow-lg transition-all">20 Rounds</button>
+                        <div id="distance-choice" class="glass p-6 rounded-2xl flex flex-col sm:flex-row items-center gap-4 justify-between shadow-xl">
+                            <div class="text-center sm:text-left">
+                                <label class="font-bold block text-sm uppercase tracking-wider">Distance</label>
+                                <p class="text-xs opacity-60">Select target range</p>
+                            </div>
+                            <div class="flex flex-wrap bg-black/40 rounded-lg p-1 border border-white/10 w-full sm:w-auto">
+                                <button onclick="setDistance(30)" class="px-3 py-2 rounded-md text-xs font-bold text-white/50 hover:text-white transition-all">30m</button>
+                                <button onclick="setDistance(40)" class="px-3 py-2 rounded-md text-xs font-bold text-white/50 hover:text-white transition-all">40m</button>
+                                <button onclick="setDistance(50)" class="px-3 py-2 rounded-md text-xs font-bold text-white/50 hover:text-white transition-all">50m</button>
+                                <button onclick="setDistance(60)" class="px-3 py-2 rounded-md text-xs font-bold bg-emerald-500 text-black shadow-lg transition-all">60m</button>
+                            </div>
                         </div>
                     </div>
+
                     <!-- Left Column: Input -->
                     <div class="lg:col-span-5 space-y-6">
-                        <div class="glass p-6 rounded-2xl text-center shadow-xl">
-                            <h3 class="text-sm uppercase tracking-widest opacity-60 mb-4 font-bold">Current Round: <span id="currentRound" class="text-emerald-400 text-lg">1</span> / <span id="totalRoundsDisplay">20</span></h3>
-                            <div class="flex justify-center gap-4 mb-6">
-                                <div id="arrow1" class="w-16 h-16 rounded-xl bg-black/30 border-2 border-white/10 flex items-center justify-center text-3xl font-bold shadow-inner">-</div>
-                                <div id="arrow2" class="w-16 h-16 rounded-xl bg-black/30 border-2 border-white/10 flex items-center justify-center text-3xl font-bold shadow-inner">-</div>
-                                <div id="arrow3" class="w-16 h-16 rounded-xl bg-black/30 border-2 border-white/10 flex items-center justify-center text-3xl font-bold shadow-inner">-</div>
+                        <div class="glass p-6 rounded-2xl text-center shadow-xl relative overflow-hidden">
+                            <!-- DISA Auto-Distance Indicator -->
+                            <div id="disa-distance-badge" class="hidden absolute top-0 left-0 w-full text-xs font-black py-1 uppercase tracking-widest transition-colors duration-500">
+                                Distance: 60M (122cm Face)
                             </div>
+
+                            <h3 class="text-sm uppercase tracking-widest opacity-60 mb-4 font-bold mt-4">Current Round: <span id="currentRound" class="text-emerald-400 text-lg">1</span> / <span id="totalRoundsDisplay">20</span></h3>
+                            
+                            <!-- Dynamic Arrow Display Container -->
+                            <div class="flex justify-center gap-2 mb-6 flex-wrap" id="arrow-display-container">
+                                <div id="arrow1" class="w-14 h-14 rounded-xl bg-black/30 border-2 border-white/10 flex items-center justify-center text-2xl font-bold shadow-inner">-</div>
+                                <div id="arrow2" class="w-14 h-14 rounded-xl bg-black/30 border-2 border-white/10 flex items-center justify-center text-2xl font-bold shadow-inner">-</div>
+                                <div id="arrow3" class="w-14 h-14 rounded-xl bg-black/30 border-2 border-white/10 flex items-center justify-center text-2xl font-bold shadow-inner">-</div>
+                                <div id="arrow4" class="hidden w-14 h-14 rounded-xl bg-black/30 border-2 border-white/10 flex items-center justify-center text-2xl font-bold shadow-inner">-</div>
+                                <div id="arrow5" class="hidden w-14 h-14 rounded-xl bg-black/30 border-2 border-white/10 flex items-center justify-center text-2xl font-bold shadow-inner">-</div>
+                                <div id="arrow6" class="hidden w-14 h-14 rounded-xl bg-black/30 border-2 border-white/10 flex items-center justify-center text-2xl font-bold shadow-inner">-</div>
+                            </div>
+                            
                             <div class="flex gap-2 justify-center">
                                 <button onclick="clearArrow()" class="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/40 text-sm font-bold flex items-center gap-2 transition-colors">
                                     <i data-lucide="delete" class="w-4 h-4"></i> Clear Last
@@ -165,23 +200,28 @@
                         </div>
 
                         <div class="glass rounded-2xl overflow-hidden flex-1 flex flex-col min-h-[300px] shadow-xl">
-                            <div class="p-4 border-b border-white/10 bg-white/5 flex justify-between items-center">
+                            <div class="p-4 border-b border-white/10 bg-white/5 flex flex-wrap justify-between items-center gap-2">
                                 <h4 class="font-bold">Score Sheet</h4>
                                 <div class="flex gap-2">
-                                    <button onclick="exportExcel()" class="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 text-xs font-bold transition-colors">Export CSV</button>
+                                    <button onclick="showArrowBreakdown()" class="px-3 py-1 rounded-md bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 text-xs font-bold transition-colors flex items-center gap-1"><i data-lucide="bar-chart" class="w-3 h-3"></i> Arrow Values</button>
+                                    <button onclick="exportExcel()" class="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 text-xs font-bold transition-colors flex items-center gap-1"><i data-lucide="download" class="w-3 h-3"></i> Export CSV</button>
                                     <button onclick="finishSession()" class="px-3 py-1 rounded-md bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/40 text-xs font-bold transition-colors">End Session</button>
                                 </div>
                             </div>
                             <div class="overflow-y-auto flex-1 p-0">
                                 <table id="scoreTable" class="w-full text-center text-sm">
-                                    <thead class="bg-black/90 backdrop-blur-md sticky top-0 text-xs uppercase tracking-widest text-white shadow-md z-10">
+                                    <thead class="bg-black/90 backdrop-blur-md sticky top-0 text-[10px] uppercase tracking-widest text-white shadow-md z-10">
                                         <tr>
-                                            <th class="py-3">End</th><th>Arr 1</th><th>Arr 2</th><th>Arr 3</th>
+                                            <th class="py-3 px-2">End</th>
+                                            <th>A1</th><th>A2</th><th>A3</th>
+                                            <th id="th-arr4" class="hidden">A4</th>
+                                            <th id="th-arr5" class="hidden">A5</th>
+                                            <th id="th-arr6" class="hidden">A6</th>
                                             <th class="text-emerald-400">ET</th><th class="text-blue-400">RT</th>
                                             <th id="th-stat1">9s</th><th id="th-stat2">10s</th><th>Miss</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-white/5"></tbody>
+                                    <tbody class="divide-y divide-white/5 text-xs"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -189,7 +229,7 @@
                 </div>
             </section>
 
-            <!-- VIEW: TOURNAMENT / RANKINGS -->
+             <!-- VIEW: TOURNAMENT / RANKINGS -->
             <section id="view-tournament" class="p-8 hidden animate-in fade-in duration-500 pb-24">
                 <div class="max-w-6xl mx-auto space-y-8">
                     
@@ -327,7 +367,21 @@
                 </div>
             </section>
 
+
         </main>
+        
+        <!-- ARROW BREAKDOWN MODAL -->
+        <div id="arrowBreakdownModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
+            <div class="glass p-8 rounded-2xl shadow-2xl max-w-sm w-full border border-white/20 relative">
+                <button onclick="closeArrowBreakdown()" class="absolute top-4 right-4 opacity-50 hover:opacity-100"><i data-lucide="x" class="w-6 h-6"></i></button>
+                <h3 class="text-2xl font-bold mb-1 text-emerald-400">Arrow Values</h3>
+                <p class="text-xs opacity-50 mb-6 uppercase tracking-widest">Total Counts</p>
+                <div id="breakdownContent" class="space-y-2 text-lg">
+                    <!-- Injected by JS -->
+                </div>
+                <button onclick="closeArrowBreakdown()" class="w-full mt-6 py-2 bg-white/10 hover:bg-white/20 rounded-lg font-bold text-sm transition-colors">Close</button>
+            </div>
+        </div>
 
         <!-- FLOATING BOTTOM RIGHT "BACK TO OS" BUTTON -->
         <a href="index.html" class="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 glass rounded-full shadow-2xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 group cursor-pointer backdrop-blur-xl">
