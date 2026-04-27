@@ -90,11 +90,14 @@
                     <!-- Hidden Outdoor Sub-Menu -->
                     <div id="outdoor-formats-menu" class="hidden glass p-6 rounded-2xl shadow-xl animate-in slide-in-from-top-4 border-l-4 border-l-orange-500">
                         <h4 class="font-bold mb-4 text-orange-400">Select Specific Outdoor Format</h4>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <button onclick="startSession('outdoor-720'); document.getElementById('distance-choice').classList.remove('hidden');" class="px-4 py-3 bg-black/40 hover:bg-black/60 border border-white/10 rounded-xl font-bold text-sm transition-colors text-white/70 hover:text-white">720 Round</button>
                             <button onclick="startSession('outdoor-1440'); document.getElementById('distance-choice').classList.remove('hidden');" class="px-4 py-3 bg-black/40 hover:bg-black/60 border border-white/10 rounded-xl font-bold text-sm transition-colors text-white/70 hover:text-white">1440 (FITA)</button>
                             <button onclick="startSession('outdoor-disa'); document.getElementById('distance-choice').classList.remove('hidden');" class="px-4 py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2">
                                 <i data-lucide="check-circle-2" class="w-4 h-4"></i> DISA Format
+                            </button>
+                            <button onclick="startSession('outdoor-practice'); document.getElementById('distance-choice').classList.remove('hidden');" class="px-4 py-3 bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2">
+                                <i data-lucide="infinity" class="w-4 h-4"></i> Outdoor Practice
                             </button>
                         </div>
                     </div>
@@ -130,14 +133,77 @@
                         </div>
                         <div id="distance-choice" class="glass p-6 rounded-2xl flex flex-col sm:flex-row items-center gap-4 justify-between shadow-xl">
                             <div class="text-center sm:text-left">
-                                <label class="font-bold block text-sm uppercase tracking-wider">Distance</label>
-                                <p class="text-xs opacity-60">Select target range</p>
+                                <label id="distance-choice-label" class="font-bold block text-sm uppercase tracking-wider">Distance</label>
+                                <p id="distance-choice-helper" class="text-xs opacity-60">Select target range</p>
                             </div>
-                            <div class="flex flex-wrap bg-black/40 rounded-lg p-1 border border-white/10 w-full sm:w-auto">
+                            <div id="standard-distance-buttons" class="flex flex-wrap bg-black/40 rounded-lg p-1 border border-white/10 w-full sm:w-auto">
+                                <button onclick="setDistance(20)" class="px-3 py-2 rounded-md text-xs font-bold text-white/50 hover:text-white transition-all">20m</button>
                                 <button onclick="setDistance(30)" class="px-3 py-2 rounded-md text-xs font-bold text-white/50 hover:text-white transition-all">30m</button>
                                 <button onclick="setDistance(40)" class="px-3 py-2 rounded-md text-xs font-bold text-white/50 hover:text-white transition-all">40m</button>
                                 <button onclick="setDistance(50)" class="px-3 py-2 rounded-md text-xs font-bold text-white/50 hover:text-white transition-all">50m</button>
                                 <button onclick="setDistance(60)" class="px-3 py-2 rounded-md text-xs font-bold bg-emerald-500 text-black shadow-lg transition-all">60m</button>
+                                <button onclick="setDistance(70)" class="px-3 py-2 rounded-md text-xs font-bold text-white/50 hover:text-white transition-all">70m</button>
+                                <button onclick="setDistance(90)" class="px-3 py-2 rounded-md text-xs font-bold text-white/50 hover:text-white transition-all">90m</button>
+                            </div>
+                            <div id="distance-choice-720" class="hidden w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
+                                <select id="outdoor720-distance-1" class="px-3 py-2 rounded-md text-xs font-bold bg-black/40 border border-white/10 text-white">
+                                    <option value="90">90m</option>
+                                    <option value="70">70m</option>
+                                    <option value="60">60m</option>
+                                    <option value="50">50m</option>
+                                    <option value="40">40m</option>
+                                    <option value="30">30m</option>
+                                    <option value="20">20m</option>
+                                </select>
+                                <select id="outdoor720-distance-2" class="px-3 py-2 rounded-md text-xs font-bold bg-black/40 border border-white/10 text-white">
+                                    <option value="90">90m</option>
+                                    <option value="70">70m</option>
+                                    <option value="60" selected>60m</option>
+                                    <option value="50">50m</option>
+                                    <option value="40">40m</option>
+                                    <option value="30">30m</option>
+                                    <option value="20">20m</option>
+                                </select>
+                                <button onclick="setOutdoor720Distances()" class="px-3 py-2 rounded-md text-xs font-bold bg-emerald-500 text-black shadow-lg transition-all">Set</button>
+                            </div>
+                            <div id="distance-choice-1440" class="hidden w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
+                                <select id="outdoor1440-distance-1" class="px-3 py-2 rounded-md text-xs font-bold bg-black/40 border border-white/10 text-white">
+                                    <option value="90" selected>90m</option>
+                                    <option value="70">70m</option>
+                                    <option value="60">60m</option>
+                                    <option value="50">50m</option>
+                                    <option value="40">40m</option>
+                                    <option value="30">30m</option>
+                                    <option value="20">20m</option>
+                                </select>
+                                <select id="outdoor1440-distance-2" class="px-3 py-2 rounded-md text-xs font-bold bg-black/40 border border-white/10 text-white">
+                                    <option value="90">90m</option>
+                                    <option value="70" selected>70m</option>
+                                    <option value="60">60m</option>
+                                    <option value="50">50m</option>
+                                    <option value="40">40m</option>
+                                    <option value="30">30m</option>
+                                    <option value="20">20m</option>
+                                </select>
+                                <select id="outdoor1440-distance-3" class="px-3 py-2 rounded-md text-xs font-bold bg-black/40 border border-white/10 text-white">
+                                    <option value="90">90m</option>
+                                    <option value="70">70m</option>
+                                    <option value="60">60m</option>
+                                    <option value="50" selected>50m</option>
+                                    <option value="40">40m</option>
+                                    <option value="30">30m</option>
+                                    <option value="20">20m</option>
+                                </select>
+                                <select id="outdoor1440-distance-4" class="px-3 py-2 rounded-md text-xs font-bold bg-black/40 border border-white/10 text-white">
+                                    <option value="90">90m</option>
+                                    <option value="70">70m</option>
+                                    <option value="60">60m</option>
+                                    <option value="50">50m</option>
+                                    <option value="40">40m</option>
+                                    <option value="30" selected>30m</option>
+                                    <option value="20">20m</option>
+                                </select>
+                                <button onclick="setOutdoor1440Distances()" class="px-3 py-2 rounded-md text-xs font-bold bg-emerald-500 text-black shadow-lg transition-all">Set</button>
                             </div>
                         </div>
                     </div>

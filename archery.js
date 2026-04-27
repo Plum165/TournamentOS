@@ -8,8 +8,19 @@ let currentRound = 1;
 let arrows =[];
 let sessionFormat = 'outdoor'; 
 let arrowsPerEnd = 3; // Dynamically changes to 6 for DISA
+const OUTDOOR_ENDS_PER_DISTANCE = 6;
+const OUTDOOR_1440_DISTANCE_COUNT = 4;
 let allScores = JSON.parse(localStorage.getItem('archeryScores')) ||[];
 let cumulativeTotal = allScores.length ? allScores[allScores.length - 1].RT : 0;
+let selectedDistance = parseInt(localStorage.getItem('archeryDistance') || '60', 10);
+let outdoor720Distances = JSON.parse(localStorage.getItem('archery720Distances') || '[60,50]');
+let outdoor1440Distances = JSON.parse(localStorage.getItem('archery1440Distances') || '[90,70,50,30]');
+if (!Array.isArray(outdoor720Distances) || outdoor720Distances.length !== 2) {
+    outdoor720Distances = [60, 50];
+}
+if (!Array.isArray(outdoor1440Distances) || outdoor1440Distances.length !== OUTDOOR_1440_DISTANCE_COUNT) {
+    outdoor1440Distances = [90, 70, 50, 30];
+}
 
 let participants = JSON.parse(localStorage.getItem('archeryParticipants')) ||[];
 let currentTournamentMode = 'single'; 
@@ -17,14 +28,16 @@ let currentTournamentMode = 'single';
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     sessionFormat = localStorage.getItem('archeryFormat') || 'outdoor';
+    selectedDistance = parseInt(localStorage.getItem('archeryDistance') || '60', 10);
+    outdoor720Distances = normalizeOutdoor720Distances(outdoor720Distances[0], outdoor720Distances[1]);
+    outdoor1440Distances = normalizeOutdoor1440Distances(outdoor1440Distances);
+    syncOutdoor720DistanceInputs();
+    syncOutdoor1440DistanceInputs();
+    setDistance(selectedDistance);
     
     if(allScores.length > 0) {
-        // Must restore variables FIRST before rendering
-        if(sessionFormat === 'outdoor-disa') {
-            numRounds = 16;
-            arrowsPerEnd = 6;
-        }
-        document.getElementById('totalRoundsDisplay').textContent = numRounds;
+        applySessionConfig(sessionFormat, true);
+        renderTotalRoundsDisplay();
         setRounds(numRounds, true);
         applyFormatUI(sessionFormat);
         
@@ -36,6 +49,100 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDISABadge();
     }
 });
+
+function normalizeOutdoor720Distances(firstDist, secondDist) {
+    const parsedFirst = parseInt(firstDist, 10);
+    const parsedSecond = parseInt(secondDist, 10);
+    const fallback = [60, 50];
+    if (Number.isNaN(parsedFirst) || Number.isNaN(parsedSecond)) return fallback;
+    if (parsedFirst === parsedSecond) return fallback;
+    return parsedFirst > parsedSecond ? [parsedFirst, parsedSecond] : [parsedSecond, parsedFirst];
+}
+
+function syncOutdoor720DistanceInputs() {
+    const firstSelect = document.getElementById('outdoor720-distance-1');
+    const secondSelect = document.getElementById('outdoor720-distance-2');
+    if (!firstSelect || !secondSelect) return;
+    firstSelect.value = String(outdoor720Distances[0]);
+    secondSelect.value = String(outdoor720Distances[1]);
+}
+
+function normalizeOutdoor1440Distances(distances) {
+    const fallback = [90, 70, 50, 30];
+    if (!Array.isArray(distances) || distances.length !== OUTDOOR_1440_DISTANCE_COUNT) return fallback;
+    return fallback.map((defaultDistance, i) => {
+        const parsed = parseInt(distances[i], 10);
+        return Number.isNaN(parsed) ? defaultDistance : parsed;
+    });
+}
+
+function syncOutdoor1440DistanceInputs() {
+    for (let i = 0; i < OUTDOOR_1440_DISTANCE_COUNT; i++) {
+        const select = document.getElementById(`outdoor1440-distance-${i + 1}`);
+        if (select) select.value = String(outdoor1440Distances[i]);
+    }
+}
+
+function setOutdoor720Distances() {
+    const firstSelect = document.getElementById('outdoor720-distance-1');
+    const secondSelect = document.getElementById('outdoor720-distance-2');
+    if (!firstSelect || !secondSelect) return;
+    if (firstSelect.value === secondSelect.value) {
+        alert("Select two different distances for 720 outdoor.");
+        return;
+    }
+
+    outdoor720Distances = normalizeOutdoor720Distances(firstSelect.value, secondSelect.value);
+    localStorage.setItem('archery720Distances', JSON.stringify(outdoor720Distances));
+    syncOutdoor720DistanceInputs();
+    updateDISABadge();
+}
+
+function setOutdoor1440Distances() {
+    const picked =[];
+    for (let i = 0; i < OUTDOOR_1440_DISTANCE_COUNT; i++) {
+        const select = document.getElementById(`outdoor1440-distance-${i + 1}`);
+        if (!select) return;
+        picked.push(select.value);
+    }
+
+    outdoor1440Distances = normalizeOutdoor1440Distances(picked);
+    localStorage.setItem('archery1440Distances', JSON.stringify(outdoor1440Distances));
+    syncOutdoor1440DistanceInputs();
+    updateDISABadge();
+}
+
+function applySessionConfig(format, useCurrentSelection = false) {
+    if (format === 'outdoor-disa') {
+        numRounds = 16;
+        arrowsPerEnd = 6;
+        return;
+    }
+    if (format === 'outdoor-720') {
+        numRounds = OUTDOOR_ENDS_PER_DISTANCE * 2;
+        arrowsPerEnd = 6;
+        return;
+    }
+    if (format === 'outdoor-1440') {
+        numRounds = OUTDOOR_ENDS_PER_DISTANCE * OUTDOOR_1440_DISTANCE_COUNT;
+        arrowsPerEnd = 6;
+        return;
+    }
+    if (format === 'outdoor-practice') {
+        numRounds = 0;
+        arrowsPerEnd = 6;
+        return;
+    }
+
+    arrowsPerEnd = 3;
+    if (useCurrentSelection) {
+        numRounds = parseInt(document.getElementById('btn-round-10').classList.contains('bg-emerald-500') ? 10 : 20, 10);
+    }
+}
+
+function getFaceLabel(distance) {
+    return distance >= 50 ? "122cm face" : "80cm face";
+}
 
 // --- UI CONTROLLER ---
 function switchView(viewId) {
@@ -66,7 +173,7 @@ function setRounds(val, skipConfirm = false) {
         resetSession();
     }
     numRounds = val;
-    document.getElementById('totalRoundsDisplay').textContent = numRounds;
+    renderTotalRoundsDisplay();
     
     const btn10 = document.getElementById('btn-round-10');
     const btn20 = document.getElementById('btn-round-20');
@@ -77,8 +184,13 @@ function setRounds(val, skipConfirm = false) {
 }
 
 function setDistance(val) {
+    selectedDistance = parseInt(val, 10);
+    localStorage.setItem('archeryDistance', String(selectedDistance));
+
     // Simple visual UI toggle for standard outdoor formats
-    const btns = document.getElementById('distance-choice').querySelectorAll('button');
+    const btnContainer = document.getElementById('standard-distance-buttons');
+    if (!btnContainer) return;
+    const btns = btnContainer.querySelectorAll('button');
     btns.forEach(btn => {
         if (btn.innerText.includes(val)) {
             btn.className = "px-3 py-2 rounded-md text-xs font-bold bg-emerald-500 text-black shadow-lg transition-all";
@@ -91,16 +203,16 @@ function setDistance(val) {
 function startSession(format) {
     sessionFormat = format;
     localStorage.setItem('archeryFormat', format);
-    
-    if (format === 'outdoor-disa') {
-        numRounds = 16; 
-        arrowsPerEnd = 6;
-    } else {
-        arrowsPerEnd = 3;
-        numRounds = parseInt(document.getElementById('btn-round-10').classList.contains('bg-emerald-500') ? 10 : 20);
+    applySessionConfig(format, true);
+
+    if (format === 'outdoor-720') {
+        setOutdoor720Distances();
+    }
+    if (format === 'outdoor-1440') {
+        setOutdoor1440Distances();
     }
     
-    document.getElementById('totalRoundsDisplay').textContent = numRounds;
+    renderTotalRoundsDisplay();
     applyFormatUI(format);
     switchView('scoring');
     updateArrowDisplay();
@@ -110,12 +222,19 @@ function startSession(format) {
 function applyFormatUI(format) {
     const badge = document.getElementById('selected-format-badge');
     const toggles = document.getElementById('standard-scoring-toggles');
+    const roundsChoice = document.getElementById('rounds-choice');
+    const distanceButtons = document.getElementById('standard-distance-buttons');
+    const distance720 = document.getElementById('distance-choice-720');
+    const distance1440 = document.getElementById('distance-choice-1440');
+    const distanceLabel = document.getElementById('distance-choice-label');
+    const distanceHelper = document.getElementById('distance-choice-helper');
     const disaBadge = document.getElementById('disa-distance-badge');
     
     let displayName = format;
     if (format === 'outdoor-720') displayName = '720 Round';
     if (format === 'outdoor-1440') displayName = '1440 (FITA)';
     if (format === 'outdoor-disa') displayName = 'DISA';
+    if (format === 'outdoor-practice') displayName = 'Outdoor Practice';
     
     badge.innerText = displayName.toUpperCase() + " MODE";
     badge.classList.remove('hidden');
@@ -126,17 +245,51 @@ function applyFormatUI(format) {
     const thA4 = document.getElementById('th-arr4');
     const thA5 = document.getElementById('th-arr5');
     const thA6 = document.getElementById('th-arr6');
+    const isSixArrowFormat = ['outdoor-disa', 'outdoor-720', 'outdoor-1440', 'outdoor-practice'].includes(format);
 
     // UI Adjustments for DISA vs Standard
     if (format === 'outdoor-disa') {
         if (toggles) toggles.classList.add('hidden');
         if (disaBadge) disaBadge.classList.remove('hidden');
+    } else {
+        if (toggles) toggles.classList.remove('hidden');
+    }
+
+    if (roundsChoice) roundsChoice.classList.remove('hidden');
+    if (distanceButtons) distanceButtons.classList.remove('hidden');
+    if (distance720) distance720.classList.add('hidden');
+    if (distance1440) distance1440.classList.add('hidden');
+    if (distanceLabel) distanceLabel.innerText = 'Distance';
+    if (distanceHelper) distanceHelper.innerText = 'Select target range';
+
+    if (format === 'outdoor-720') {
+        if (roundsChoice) roundsChoice.classList.add('hidden');
+        if (distanceButtons) distanceButtons.classList.add('hidden');
+        if (distance720) distance720.classList.remove('hidden');
+        if (distanceLabel) distanceLabel.innerText = '720 Distances';
+        if (distanceHelper) distanceHelper.innerText = '6 ends at longest distance, then 6 ends at shortest distance';
+        if (disaBadge) disaBadge.classList.remove('hidden');
+    } else if (format === 'outdoor-1440') {
+        if (roundsChoice) roundsChoice.classList.add('hidden');
+        if (distanceButtons) distanceButtons.classList.add('hidden');
+        if (distance1440) distance1440.classList.remove('hidden');
+        if (distanceLabel) distanceLabel.innerText = '1440 Distances';
+        if (distanceHelper) distanceHelper.innerText = '4 blocks of 6 ends each, in the selected distance order';
+        if (disaBadge) disaBadge.classList.remove('hidden');
+    } else if (format === 'outdoor-practice') {
+        if (roundsChoice) roundsChoice.classList.add('hidden');
+        if (distanceLabel) distanceLabel.innerText = 'Practice Distance';
+        if (distanceHelper) distanceHelper.innerText = 'Unlimited ends, 6 arrows per end';
+        if (disaBadge) disaBadge.classList.add('hidden');
+    } else if (format !== 'outdoor-disa') {
+        if (disaBadge) disaBadge.classList.add('hidden');
+    }
+
+    if (isSixArrowFormat) {
         if (thA4) thA4.classList.remove('hidden');
         if (thA5) thA5.classList.remove('hidden');
         if (thA6) thA6.classList.remove('hidden');
     } else {
-        if (toggles) toggles.classList.remove('hidden');
-        if (disaBadge) disaBadge.classList.add('hidden');
         if (thA4) thA4.classList.add('hidden');
         if (thA5) thA5.classList.add('hidden');
         if (thA6) thA6.classList.add('hidden');
@@ -157,17 +310,42 @@ function applyFormatUI(format) {
         if (thStat1) thStat1.innerText = "10s";
         if (thStat2) thStat2.innerText = "10s+X";
     }
+
+    syncOutdoor720DistanceInputs();
+    syncOutdoor1440DistanceInputs();
+    setDistance(selectedDistance);
 }
 
 function updateDISABadge() {
     const badge = document.getElementById('disa-distance-badge');
-    if (sessionFormat !== 'outdoor-disa' || !badge) return;
+    if (!badge) return;
+
+    if (sessionFormat !== 'outdoor-disa' && sessionFormat !== 'outdoor-720' && sessionFormat !== 'outdoor-1440') {
+        badge.classList.add('hidden');
+        return;
+    }
+    badge.classList.remove('hidden');
 
     // First, strip away any existing color classes
     badge.classList.remove(
         'bg-red-500', 'bg-orange-500', 'bg-blue-500', 'bg-emerald-500', 
         'text-white', 'text-black'
     );
+
+    if (sessionFormat === 'outdoor-720') {
+        const distance = currentRound > OUTDOOR_ENDS_PER_DISTANCE ? outdoor720Distances[1] : outdoor720Distances[0];
+        badge.classList.add('bg-emerald-500', 'text-black');
+        badge.innerText = `Current Distance: ${distance}M (${getFaceLabel(distance)})`;
+        return;
+    }
+
+    if (sessionFormat === 'outdoor-1440') {
+        const blockIdx = Math.min(Math.floor((Math.max(currentRound, 1) - 1) / OUTDOOR_ENDS_PER_DISTANCE), OUTDOOR_1440_DISTANCE_COUNT - 1);
+        const distance = outdoor1440Distances[blockIdx];
+        badge.classList.add('bg-emerald-500', 'text-black');
+        badge.innerText = `Current Distance: ${distance}M (${getFaceLabel(distance)})`;
+        return;
+    }
 
     let dist = "";
     
@@ -218,7 +396,7 @@ function updateArrowDisplay() {
 
 function nextRound() {
     if (arrows.length < arrowsPerEnd) return alert(`Complete all ${arrowsPerEnd} arrows before moving to the next round!`);
-    if (currentRound > numRounds) return;
+    if (numRounds !== 0 && currentRound > numRounds) return;
     
     let ET = arrows.reduce((sum, a) => sum + (a === 'X' ? 10 : (a === 'M' ? 0 : a)), 0);
     cumulativeTotal += ET;
@@ -253,7 +431,7 @@ function nextRound() {
     currentRound++;
     updateDISABadge();
     
-    if (currentRound > numRounds) {
+    if (numRounds !== 0 && currentRound > numRounds) {
         document.getElementById('currentRound').textContent = currentRound - 1;
         alert("All rounds complete! Click 'End Session' or 'Export CSV'.");
     } else {
@@ -413,17 +591,167 @@ function exportExcel() {
         exportDISAExcel();
         return;
     }
+    if (sessionFormat === 'outdoor-720') {
+        exportOutdoor720Excel();
+        return;
+    }
+    if (sessionFormat === 'outdoor-1440') {
+        exportOutdoor1440Excel();
+        return;
+    }
 
     let s1H = sessionFormat === 'indoor' ? '9s' : '10s';
     let s2H = sessionFormat === 'indoor' ? '10s' : '10s+X';
-    let csv = `Round,Arrow 1,Arrow 2,Arrow 3,End Total (ET),Round Total (RT),${s1H},${s2H},Miss\n`;
+    const arrowsHeader = arrowsPerEnd === 6
+        ? "Arrow 1,Arrow 2,Arrow 3,Arrow 4,Arrow 5,Arrow 6"
+        : "Arrow 1,Arrow 2,Arrow 3";
+    let csv = `Round,${arrowsHeader},End Total (ET),Round Total (RT),${s1H},${s2H},Miss\n`;
+    if (sessionFormat === 'outdoor-practice') {
+        csv = `Distance,Round,${arrowsHeader},End Total (ET),Round Total (RT),${s1H},${s2H},Miss\n`;
+    }
     allScores.forEach(r => {
-        csv += `${r.round},${r.arrows[0]},${r.arrows[1]},${r.arrows[2]},${r.ET},${r.RT},${r.stat1||r.nineCount||0},${r.stat2||r.tenCount||0},${r.missCount}\n`;
+        if (arrowsPerEnd === 6) {
+            if (sessionFormat === 'outdoor-practice') {
+                csv += `${selectedDistance}m,${r.round},${r.arrows[0]},${r.arrows[1]},${r.arrows[2]},${r.arrows[3]},${r.arrows[4]},${r.arrows[5]},${r.ET},${r.RT},${r.stat1||r.nineCount||0},${r.stat2||r.tenCount||0},${r.missCount}\n`;
+            } else {
+                csv += `${r.round},${r.arrows[0]},${r.arrows[1]},${r.arrows[2]},${r.arrows[3]},${r.arrows[4]},${r.arrows[5]},${r.ET},${r.RT},${r.stat1||r.nineCount||0},${r.stat2||r.tenCount||0},${r.missCount}\n`;
+            }
+        } else {
+            csv += `${r.round},${r.arrows[0]},${r.arrows[1]},${r.arrows[2]},${r.ET},${r.RT},${r.stat1||r.nineCount||0},${r.stat2||r.tenCount||0},${r.missCount}\n`;
+        }
     });
     
     let link = document.createElement("a");
     link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
     link.download = `Archery_${sessionFormat}_Scores.csv`;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+function exportOutdoor720Excel() {
+    let csvRows =[];
+    let leftHeaders =["Rounds", "Arrow 1", "Arrow 2", "Arrow 3", "Arrow 4", "Arrow 5", "Arrow 6", "End Total(ET)", "Round Total(RT)", "10'", "10'+X", "X"];
+    const distances =[
+        { name: `${outdoor720Distances[0]} Meter Range (${getFaceLabel(outdoor720Distances[0])})`, startIdx: 0 },
+        { name: `${outdoor720Distances[1]} Meter Range (${getFaceLabel(outdoor720Distances[1])})`, startIdx: OUTDOOR_ENDS_PER_DISTANCE }
+    ];
+
+    let rightBlocks =[];
+    distances.forEach(d => {
+        rightBlocks.push(`${d.name},,,,,,,`);
+        rightBlocks.push(`Arrow 1,Arrow 2,Arrow 3,Arrow 4,Arrow 5,Arrow 6,End Total(ET),Round Total(RT)`);
+        for (let i = 0; i < OUTDOOR_ENDS_PER_DISTANCE; i++) {
+            let score = allScores[d.startIdx + i];
+            if (score) {
+                rightBlocks.push(`${score.arrows[0]||''},${score.arrows[1]||''},${score.arrows[2]||''},${score.arrows[3]||''},${score.arrows[4]||''},${score.arrows[5]||''},${score.ET},${score.RT}`);
+            } else {
+                rightBlocks.push(`,,,,,,,`);
+            }
+        }
+        rightBlocks.push(`,,,,,,,`);
+    });
+
+    let leftBlocks =[];
+    leftBlocks.push(leftHeaders.join(","));
+    for (let i = 0; i < OUTDOOR_ENDS_PER_DISTANCE * 2; i++) {
+        let score = allScores[i];
+        if (score) {
+            let pure10s = score.arrows.filter(a => a == 10).length;
+            let pureXs = score.arrows.filter(a => a === 'X').length;
+            leftBlocks.push(`${score.round},${score.arrows[0]||''},${score.arrows[1]||''},${score.arrows[2]||''},${score.arrows[3]||''},${score.arrows[4]||''},${score.arrows[5]||''},${score.ET},${score.RT},${pure10s},${pure10s + pureXs},${pureXs}`);
+        } else {
+            leftBlocks.push(`${i+1},,,,,,,,,,,`);
+        }
+    }
+
+    let totalPointsScored = allScores.reduce((sum, r) => sum + r.ET, 0);
+    let totalArrowsFired = allScores.length * 6;
+    let avg = totalArrowsFired > 0 ? (totalPointsScored / totalArrowsFired).toFixed(2) : 0;
+    let totalMisses = allScores.reduce((sum, r) => sum + r.missCount, 0);
+    let missP = totalArrowsFired > 0 ? ((totalMisses / totalArrowsFired) * 100).toFixed(1) + '%' : '0%';
+    let total10s = allScores.reduce((sum, r) => sum + r.arrows.filter(a=>a==10).length, 0);
+    let total10X = allScores.reduce((sum, r) => sum + (r.arrows.filter(a=>a==10).length + r.arrows.filter(a=>a==='X').length), 0);
+    let totalXs = allScores.reduce((sum, r) => sum + r.arrows.filter(a=>a==='X').length, 0);
+
+    leftBlocks.push(`Total,${totalPointsScored},,,,,,,,,${total10s},${total10X},${totalXs}`);
+    leftBlocks.push(`Avg Arrow,${avg},,,,,,,,,,`);
+    leftBlocks.push(`Misses,${totalMisses},,,,,,,,,,`);
+    leftBlocks.push(`Percentage,${missP},,,,,,,,,,`);
+
+    let maxRows = Math.max(leftBlocks.length, rightBlocks.length);
+    for(let i=0; i<maxRows; i++) {
+        let left = leftBlocks[i] || ",,,,,,,,,,,";
+        let right = rightBlocks[i] || "";
+        csvRows.push(`${left},,,${right}`);
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+    let link = document.createElement("a");
+    link.href = encodeURI(csvContent);
+    link.download = `Archery_720_Scores.csv`;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+function exportOutdoor1440Excel() {
+    let csvRows =[];
+    let leftHeaders =["Rounds", "Arrow 1", "Arrow 2", "Arrow 3", "Arrow 4", "Arrow 5", "Arrow 6", "End Total(ET)", "Round Total(RT)", "10'", "10'+X", "X"];
+    const distances = outdoor1440Distances.map((distance, idx) => ({
+        name: `${distance} Meter Range (${getFaceLabel(distance)})`,
+        startIdx: idx * OUTDOOR_ENDS_PER_DISTANCE
+    }));
+
+    let rightBlocks =[];
+    distances.forEach(d => {
+        rightBlocks.push(`${d.name},,,,,,,`);
+        rightBlocks.push(`Arrow 1,Arrow 2,Arrow 3,Arrow 4,Arrow 5,Arrow 6,End Total(ET),Round Total(RT)`);
+        for (let i = 0; i < OUTDOOR_ENDS_PER_DISTANCE; i++) {
+            let score = allScores[d.startIdx + i];
+            if (score) {
+                rightBlocks.push(`${score.arrows[0]||''},${score.arrows[1]||''},${score.arrows[2]||''},${score.arrows[3]||''},${score.arrows[4]||''},${score.arrows[5]||''},${score.ET},${score.RT}`);
+            } else {
+                rightBlocks.push(`,,,,,,,`);
+            }
+        }
+        rightBlocks.push(`,,,,,,,`);
+    });
+
+    let leftBlocks =[];
+    leftBlocks.push(leftHeaders.join(","));
+    for (let i = 0; i < OUTDOOR_ENDS_PER_DISTANCE * OUTDOOR_1440_DISTANCE_COUNT; i++) {
+        let score = allScores[i];
+        if (score) {
+            let pure10s = score.arrows.filter(a => a == 10).length;
+            let pureXs = score.arrows.filter(a => a === 'X').length;
+            leftBlocks.push(`${score.round},${score.arrows[0]||''},${score.arrows[1]||''},${score.arrows[2]||''},${score.arrows[3]||''},${score.arrows[4]||''},${score.arrows[5]||''},${score.ET},${score.RT},${pure10s},${pure10s + pureXs},${pureXs}`);
+        } else {
+            leftBlocks.push(`${i+1},,,,,,,,,,,`);
+        }
+    }
+
+    let totalPointsScored = allScores.reduce((sum, r) => sum + r.ET, 0);
+    let totalArrowsFired = allScores.length * 6;
+    let avg = totalArrowsFired > 0 ? (totalPointsScored / totalArrowsFired).toFixed(2) : 0;
+    let totalMisses = allScores.reduce((sum, r) => sum + r.missCount, 0);
+    let missP = totalArrowsFired > 0 ? ((totalMisses / totalArrowsFired) * 100).toFixed(1) + '%' : '0%';
+    let total10s = allScores.reduce((sum, r) => sum + r.arrows.filter(a=>a==10).length, 0);
+    let total10X = allScores.reduce((sum, r) => sum + (r.arrows.filter(a=>a==10).length + r.arrows.filter(a=>a==='X').length), 0);
+    let totalXs = allScores.reduce((sum, r) => sum + r.arrows.filter(a=>a==='X').length, 0);
+
+    leftBlocks.push(`Total,${totalPointsScored},,,,,,,,,${total10s},${total10X},${totalXs}`);
+    leftBlocks.push(`Avg Arrow,${avg},,,,,,,,,,`);
+    leftBlocks.push(`Misses,${totalMisses},,,,,,,,,,`);
+    leftBlocks.push(`Percentage,${missP},,,,,,,,,,`);
+
+    let maxRows = Math.max(leftBlocks.length, rightBlocks.length);
+    for(let i=0; i<maxRows; i++) {
+        let left = leftBlocks[i] || ",,,,,,,,,,,";
+        let right = rightBlocks[i] || "";
+        csvRows.push(`${left},,,${right}`);
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+    let link = document.createElement("a");
+    link.href = encodeURI(csvContent);
+    link.download = `Archery_1440_Scores.csv`;
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
@@ -510,9 +838,13 @@ function resetSession() {
     updateDISABadge();
 }
 
+function renderTotalRoundsDisplay() {
+    document.getElementById('totalRoundsDisplay').textContent = numRounds === 0 ? '∞' : numRounds;
+}
+
 function finishSession() {
 if (allScores.length === 0) return alert("No scores recorded yet.");
-let totalArrows = allScores.length * 3;
+let totalArrows = allScores.length * arrowsPerEnd;
 let missP = totalArrows > 0 ? ((allScores.reduce((sum,r)=>sum+r.missCount,0)/totalArrows)*100).toFixed(2) : '0';
 alert(`SESSION COMPLETE\nTotal rounds: ${allScores.length}\nPoints: ${cumulativeTotal}\nMiss %: ${missP}%`);
 if (confirm("Clear this session's data?")) {
