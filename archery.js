@@ -1007,6 +1007,34 @@ function getEntityIdentityKey(entity, index) {
     ].join('|') || `entity-${index}`;
 }
 
+function renderRankingDetails(entity) {
+    if (Array.isArray(entity.players) && entity.players.length) {
+        return `
+            <div class="mt-3 pt-3 border-t border-white/10 space-y-2 text-left">
+                ${entity.players.map((player, playerIndex) => `
+                    <div class="rounded-lg bg-black/20 border border-white/10 p-2">
+                        <p class="text-[10px] font-black uppercase text-emerald-400 mb-1">Archer ${playerIndex + 1}</p>
+                        <p class="text-sm font-bold leading-snug break-words">${escapeHTML(player.name)}</p>
+                        <div class="mt-1 grid grid-cols-2 gap-2 text-[11px] opacity-75">
+                            <span>${Number(player.points) || 0} Pts</span>
+                            <span class="truncate" title="${escapeHTML(player.category)}">${escapeHTML(player.category)}</span>
+                            <span class="col-span-2 truncate" title="${escapeHTML(player.team || 'Independent')}">${escapeHTML(player.team || 'Independent')}</span>
+                        </div>
+                    </div>
+                `).join('')}
+                ${entity.hasByePlayer ? `<p class="text-[11px] text-amber-300 font-bold">Bye: this archer is unpaired.</p>` : ''}
+            </div>
+        `;
+    }
+
+    return `
+        <div class="mt-3 pt-3 border-t border-white/10 text-left text-[11px] opacity-75 space-y-1">
+            <p><span class="font-bold text-emerald-400">Category:</span> ${escapeHTML(entity.category || 'Uncategorized')}</p>
+            <p><span class="font-bold text-emerald-400">Team/Club:</span> ${escapeHTML(entity.team || 'Independent')}</p>
+        </div>
+    `;
+}
+
 function getRankedIndividuals(category) {
     const source = category === 'Everyone'
         ? participants
@@ -1042,11 +1070,15 @@ function renderRankings(containerId, entities) {
     }
 
     container.innerHTML = uniqueEntities.map((entity, idx) => `
-        <div class="glass p-3 rounded-xl border border-white/10 text-center shadow-md min-w-0">
-            <p class="text-[10px] font-black uppercase text-purple-400 mb-1">Rank #${idx + 1}</p>
-            <h5 class="font-bold truncate" title="${escapeHTML(entity.name)}">${escapeHTML(entity.name)}</h5>
-            <p class="text-xs opacity-70 mt-1">${entity.points ?? 0} Pts</p>
-        </div>
+        <details class="glass p-3 rounded-xl border border-white/10 text-center shadow-md min-w-0 cursor-pointer group open:border-emerald-400/40 open:bg-white/10 transition-colors">
+            <summary class="list-none [&::-webkit-details-marker]:hidden">
+                <p class="text-[10px] font-black uppercase text-purple-400 mb-1">Rank #${idx + 1}</p>
+                <h5 class="font-bold truncate group-open:whitespace-normal group-open:break-words" title="${escapeHTML(entity.name)}">${escapeHTML(entity.name)}</h5>
+                <p class="text-xs opacity-70 mt-1">${entity.points ?? 0} Pts</p>
+                <p class="text-[10px] uppercase tracking-widest opacity-40 mt-2 group-open:hidden">Click for details</p>
+            </summary>
+            ${renderRankingDetails(entity)}
+        </details>
     `).join('');
 }
 
