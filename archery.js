@@ -27,6 +27,9 @@ let currentTournamentMode = 'single';
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
+    participants = dedupeParticipants(participants);
+    localStorage.setItem('archeryParticipants', JSON.stringify(participants));
+
     sessionFormat = localStorage.getItem('archeryFormat') || 'outdoor';
     selectedDistance = parseInt(localStorage.getItem('archeryDistance') || '60', 10);
     outdoor720Distances = normalizeOutdoor720Distances(outdoor720Distances[0], outdoor720Distances[1]);
@@ -889,10 +892,12 @@ function removeParticipant(id) {
 }
 
 function saveParticipants() {
+    participants = dedupeParticipants(participants);
     localStorage.setItem('archeryParticipants', JSON.stringify(participants));
 }
 
 function renderParticipants() {
+    participants = dedupeParticipants(participants);
     participants.sort((a, b) => b.points - a.points);
     
     const tbody = document.getElementById('participantsTableBody');
@@ -971,12 +976,45 @@ function escapeHTML(value) {
     }[char]));
 }
 
+function normalizeRankingKey(value) {
+    return String(value ?? '').trim().toLowerCase();
+}
+
+function getParticipantIdentityKey(participant) {
+    return [
+        normalizeRankingKey(participant.name),
+        Number(participant.points) || 0,
+        normalizeRankingKey(participant.category),
+        normalizeRankingKey(participant.team || 'Independent')
+    ].join('|');
+}
+
+function dedupeParticipants(participantList) {
+    return Array.from(new Map(participantList.map(p => [getParticipantIdentityKey(p), p])).values());
+}
+
+function getEntityIdentityKey(entity, index) {
+    if (Array.isArray(entity.players) && entity.players.length) {
+        return entity.players
+            .map(player => getParticipantIdentityKey(player))
+            .sort()
+            .join(' + ');
+    }
+
+    return [
+        normalizeRankingKey(entity.name),
+        Number(entity.points) || 0
+    ].join('|') || `entity-${index}`;
+}
+
 function getRankedIndividuals(category) {
     const source = category === 'Everyone'
         ? participants
         : participants.filter(p => p.category === category);
 
-    return source
+    const uniquePlayers = Array.from(new Map(source.map(p => [getParticipantIdentityKey(p), p])).values());
+
+    return uniquePlayers
         .map(p => ({
             id: p.id,
             name: p.name,
@@ -991,12 +1029,19 @@ function renderRankings(containerId, entities) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    if (!entities.length) {
+    container.innerHTML = '';
+
+    const uniqueEntities = Array.from(new Map(entities.map((entity, index) => [
+        getEntityIdentityKey(entity, index),
+        entity
+    ])).values());
+
+    if (!uniqueEntities.length) {
         container.innerHTML = `<p class="col-span-full text-center text-sm opacity-50">No rankings available.</p>`;
         return;
     }
 
-    container.innerHTML = entities.map((entity, idx) => `
+    container.innerHTML = uniqueEntities.map((entity, idx) => `
         <div class="glass p-3 rounded-xl border border-white/10 text-center shadow-md min-w-0">
             <p class="text-[10px] font-black uppercase text-purple-400 mb-1">Rank #${idx + 1}</p>
             <h5 class="font-bold truncate" title="${escapeHTML(entity.name)}">${escapeHTML(entity.name)}</h5>
@@ -1005,7 +1050,7 @@ function renderRankings(containerId, entities) {
     `).join('');
 }
 
-function generateTeams(rankedIndividuals) {
+function generateTeamsFromRankings(rankedIndividuals) {
     const teams = [];
     let left = 0;
     let right = rankedIndividuals.length - 1;
@@ -1014,6 +1059,7 @@ function generateTeams(rankedIndividuals) {
         const topSeed = rankedIndividuals[left];
         const lowerSeed = rankedIndividuals[right];
         teams.push({
+            id: `${topSeed.id}-${lowerSeed.id}`,
             name: `${topSeed.name} + ${lowerSeed.name}`,
             players: [topSeed, lowerSeed]
         });
@@ -1024,6 +1070,7 @@ function generateTeams(rankedIndividuals) {
     if (left === right) {
         const player = rankedIndividuals[left];
         teams.push({
+            id: `${player.id}-bye`,
             name: `${player.name} (Bye)`,
             players: [player],
             hasByePlayer: true
@@ -1043,22 +1090,8 @@ function calculateTeamScores(teams) {
 }
 
 function getRankedTeams(category) {
-    if (category === 'Everyone') {
-        return calculateTeamScores(generateTeams(getRankedIndividuals('Everyone')));
-    }
-
-    const teamMap = new Map();
-    getRankedIndividuals(category).forEach(p => {
-        const teamName = p.team && p.team !== 'Independent' ? p.team : `${p.name} (Ind)`;
-        if (!teamMap.has(teamName)) {
-            teamMap.set(teamName, { name: teamName, points: 0, players: [] });
-        }
-        const team = teamMap.get(teamName);
-        team.points += p.points;
-        team.players.push(p);
-    });
-
-    return [...teamMap.values()].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+    const rankedPlayers = getRankedIndividuals(category);
+    return calculateTeamScores(generateTeamsFromRankings(rankedPlayers));
 }
 
 function seedFirstRound(entities) {
@@ -1163,15 +1196,19 @@ function generateBracketForCategory(category) {
         rankingsContainer.classList.remove('hidden');
         rankingsTitle.innerText = `Singles Rankings (${category})`;
         entities = getRankedIndividuals(category);
-        renderRankings('teamRankingsList', entities);
     } else {
         const titleCategory = category === 'Everyone' ? 'Everyone' : category;
         document.getElementById('bracketTitleDisplay').innerText = `${titleCategory} - Team Elimination`;
         rankingsContainer.classList.remove('hidden');
         rankingsTitle.innerText = category === 'Everyone' ? 'Dynamic Team Rankings (Everyone)' : `Team Rankings (${category})`;
         entities = getRankedTeams(category);
-        renderRankings('teamRankingsList', entities);
     }
+
+    console.log("Rendering category:", category);
+    console.log("Entities count:", entities.length);
+    console.log("Unique rankings count:", new Set(entities.map(getEntityIdentityKey)).size);
+
+    renderRankings('teamRankingsList', entities);
 
     if(entities.length < 2) return alert(`Not enough data in the '${category}' category to generate a bracket!`);
     generateBracket('archeryBracketContainer', entities);
