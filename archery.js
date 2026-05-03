@@ -961,11 +961,178 @@ function backToCategories() {
     document.getElementById('tournament-category-view').classList.remove('hidden');
 }
 
+function escapeHTML(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
+}
+
+function getRankedIndividuals(category) {
+    const source = category === 'Everyone'
+        ? participants
+        : participants.filter(p => p.category === category);
+
+    return source
+        .map(p => ({
+            id: p.id,
+            name: p.name,
+            points: Number(p.points) || 0,
+            category: p.category,
+            team: p.team || 'Independent'
+        }))
+        .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+}
+
+function renderRankings(containerId, entities) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (!entities.length) {
+        container.innerHTML = `<p class="col-span-full text-center text-sm opacity-50">No rankings available.</p>`;
+        return;
+    }
+
+    container.innerHTML = entities.map((entity, idx) => `
+        <div class="glass p-3 rounded-xl border border-white/10 text-center shadow-md min-w-0">
+            <p class="text-[10px] font-black uppercase text-purple-400 mb-1">Rank #${idx + 1}</p>
+            <h5 class="font-bold truncate" title="${escapeHTML(entity.name)}">${escapeHTML(entity.name)}</h5>
+            <p class="text-xs opacity-70 mt-1">${entity.points ?? 0} Pts</p>
+        </div>
+    `).join('');
+}
+
+function generateTeams(rankedIndividuals) {
+    const teams = [];
+    let left = 0;
+    let right = rankedIndividuals.length - 1;
+
+    while (left < right) {
+        const topSeed = rankedIndividuals[left];
+        const lowerSeed = rankedIndividuals[right];
+        teams.push({
+            name: `${topSeed.name} + ${lowerSeed.name}`,
+            players: [topSeed, lowerSeed]
+        });
+        left++;
+        right--;
+    }
+
+    if (left === right) {
+        const player = rankedIndividuals[left];
+        teams.push({
+            name: `${player.name} (Bye)`,
+            players: [player],
+            hasByePlayer: true
+        });
+    }
+
+    return teams;
+}
+
+function calculateTeamScores(teams) {
+    return teams
+        .map(team => ({
+            ...team,
+            points: team.players.reduce((sum, player) => sum + (Number(player.points) || 0), 0)
+        }))
+        .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+}
+
+function getRankedTeams(category) {
+    if (category === 'Everyone') {
+        return calculateTeamScores(generateTeams(getRankedIndividuals('Everyone')));
+    }
+
+    const teamMap = new Map();
+    getRankedIndividuals(category).forEach(p => {
+        const teamName = p.team && p.team !== 'Independent' ? p.team : `${p.name} (Ind)`;
+        if (!teamMap.has(teamName)) {
+            teamMap.set(teamName, { name: teamName, points: 0, players: [] });
+        }
+        const team = teamMap.get(teamName);
+        team.points += p.points;
+        team.players.push(p);
+    });
+
+    return [...teamMap.values()].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+}
+
+function seedFirstRound(entities) {
+    const seeded = entities.map(entity => ({ ...entity }));
+    let bracketSize = 1;
+    while (bracketSize < seeded.length) bracketSize *= 2;
+    while (seeded.length < bracketSize) seeded.push({ name: 'BYE', points: 0, isBye: true });
+
+    const matchups = [];
+    for (let i = 0; i < seeded.length / 2; i++) {
+        matchups.push([seeded[i], seeded[seeded.length - 1 - i]]);
+    }
+
+    return { bracketSize, matchups };
+}
+
+function getRoundLabel(roundIndex, totalRounds) {
+    if (roundIndex === totalRounds) return 'Champion';
+    const remaining = totalRounds - roundIndex;
+    const roundNames = ['', 'Final', 'Semifinals', 'Quarterfinals', 'Round of 16', 'Round of 32'];
+    return remaining < roundNames.length ? roundNames[remaining] : `Round ${roundIndex + 1}`;
+}
+
+function generateBracket(containerId, rankedEntities) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const { bracketSize, matchups } = seedFirstRound(rankedEntities);
+    const totalRounds = Math.log2(bracketSize);
+    let html = '';
+
+    container.style.setProperty('--seed-count', bracketSize);
+
+    for (let r = 0; r <= totalRounds; r++) {
+        const column = r + 1;
+        html += `<h5 class="bracket-round-label text-xs font-bold text-emerald-400 uppercase tracking-widest text-center" style="grid-column:${column};grid-row:1;">${getRoundLabel(r, totalRounds)}</h5>`;
+
+        if (r === totalRounds) {
+            const rowSpan = bracketSize;
+            html += `
+                <div class="glass p-3 rounded-lg border-2 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)] self-center" style="grid-column:${column};grid-row:2 / span ${rowSpan};">
+                    <input class="w-full bg-transparent outline-none font-bold text-center placeholder:opacity-40 text-emerald-300" placeholder="Winner">
+                </div>`;
+            continue;
+        }
+
+        const matchesInRound = bracketSize / Math.pow(2, r + 1);
+        const rowSpan = Math.pow(2, r + 1);
+        const connectorSpan = Math.pow(2, r);
+
+        for (let m = 0; m < matchesInRound; m++) {
+            const rowStart = 2 + (m * rowSpan);
+            const t1 = r === 0 ? matchups[m][0].name : 'TBD';
+            const t2 = r === 0 ? matchups[m][1].name : 'TBD';
+            const connectorClass = r === totalRounds - 1 ? 'champion-connector' : (m % 2 === 0 ? 'connector-down' : 'connector-up');
+
+            html += `
+                <div class="glass p-2 rounded-lg border border-white/20 flex flex-col justify-center gap-1 bracket-match shadow-lg ${connectorClass}" style="grid-column:${column};grid-row:${rowStart} / span ${rowSpan};--connector-span:${connectorSpan};">
+                    <input class="bg-black/40 hover:bg-black/60 border border-transparent focus:border-emerald-500 px-2 py-1.5 text-sm rounded outline-none font-semibold transition-colors truncate" value="${escapeHTML(t1)}" title="${escapeHTML(t1)}">
+                    <div class="h-[1px] w-full bg-white/10 my-0.5"></div>
+                    <input class="bg-black/40 hover:bg-black/60 border border-transparent focus:border-emerald-500 px-2 py-1.5 text-sm rounded outline-none font-semibold transition-colors truncate" value="${escapeHTML(t2)}" title="${escapeHTML(t2)}">
+                </div>`;
+        }
+    }
+
+    container.innerHTML = html;
+}
+
 function showCategorySelection(mode) {
     if (participants.length === 0) return alert("Please add participants to rankings first.");
     currentTournamentMode = mode; 
     
-    const categories = [...new Set(participants.map(p => p.category))];
+    const categories = [...new Set(participants.map(p => p.category))].sort((a, b) => a.localeCompare(b));
+    if (mode === 'team') categories.unshift('Everyone');
     
     document.getElementById('tournament-setup-view').classList.add('hidden');
     document.getElementById('tournament-category-view').classList.remove('hidden');
@@ -974,89 +1141,38 @@ function showCategorySelection(mode) {
 
     const btnContainer = document.getElementById('categoryButtonsContainer');
     btnContainer.innerHTML = categories.map(cat => `
-        <button onclick="generateBracketForCategory('${cat}')" class="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-all shadow-lg hover:-translate-y-1 text-lg">
-            ${cat}
+        <button type="button" data-category="${escapeHTML(cat)}" class="category-select-btn px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-all shadow-lg hover:-translate-y-1 text-lg">
+            ${escapeHTML(cat)}
         </button>
     `).join('');
+    btnContainer.querySelectorAll('.category-select-btn').forEach(button => {
+        button.addEventListener('click', () => generateBracketForCategory(button.dataset.category));
+    });
 }
 
 function generateBracketForCategory(category) {
     document.getElementById('tournament-category-view').classList.add('hidden');
     document.getElementById('tournament-bracket-view').classList.remove('hidden');
     
-    let categorySubset = participants.filter(p => p.category === category);
     let entities =[];
+    const rankingsContainer = document.getElementById('teamRankingsContainer');
+    const rankingsTitle = rankingsContainer.querySelector('h4');
 
     if (currentTournamentMode === 'single') {
         document.getElementById('bracketTitleDisplay').innerText = `${category} - Single Elimination`;
-        document.getElementById('teamRankingsContainer').classList.add('hidden');
-        entities =[...categorySubset].sort((a,b) => b.points - a.points);
+        rankingsContainer.classList.remove('hidden');
+        rankingsTitle.innerText = `Singles Rankings (${category})`;
+        entities = getRankedIndividuals(category);
+        renderRankings('teamRankingsList', entities);
     } else {
-        document.getElementById('bracketTitleDisplay').innerText = `${category} - Team Elimination`;
-        document.getElementById('teamRankingsContainer').classList.remove('hidden');
-        
-        const teamMap = {};
-        categorySubset.forEach(p => {
-            let teamName = p.team && p.team !== 'Independent' ? p.team : p.name + " (Ind)";
-            if (!teamMap[teamName]) teamMap[teamName] = 0;
-            teamMap[teamName] += p.points;
-        });
-
-        entities = Object.keys(teamMap).map(tName => ({ name: tName, points: teamMap[tName] }))
-                         .sort((a,b) => b.points - a.points);
-
-        document.getElementById('teamRankingsList').innerHTML = entities.map((t, idx) => `
-            <div class="glass p-3 rounded-xl border border-white/10 text-center shadow-md">
-                <p class="text-[10px] font-black uppercase text-purple-400 mb-1">Rank #${idx+1}</p>
-                <h5 class="font-bold truncate">${t.name}</h5>
-                <p class="text-xs opacity-70 mt-1">${t.points} Pts</p>
-            </div>
-        `).join('');
+        const titleCategory = category === 'Everyone' ? 'Everyone' : category;
+        document.getElementById('bracketTitleDisplay').innerText = `${titleCategory} - Team Elimination`;
+        rankingsContainer.classList.remove('hidden');
+        rankingsTitle.innerText = category === 'Everyone' ? 'Dynamic Team Rankings (Everyone)' : `Team Rankings (${category})`;
+        entities = getRankedTeams(category);
+        renderRankings('teamRankingsList', entities);
     }
 
     if(entities.length < 2) return alert(`Not enough data in the '${category}' category to generate a bracket!`);
-
-    let p = 1;
-    while(p < entities.length) p *= 2;
-    while(entities.length < p) entities.push({ name: "BYE" });
-
-    let firstRoundMatchups =[];
-    for(let i=0; i < entities.length / 2; i++) {
-        firstRoundMatchups.push([entities[i].name, entities[entities.length - 1 - i].name]);
-    }
-
-    const totalRounds = Math.log2(p);
-    const container = document.getElementById('archeryBracketContainer');
-    let html = '';
-
-    const roundNames =['','Final', 'Semifinals', 'Quarterfinals', 'Round of 16', 'Round of 32'];
-
-    for (let r = 0; r <= totalRounds; r++) {
-        let matchesInRound = p / Math.pow(2, r + 1);
-        let roundLabel = (totalRounds - r) < roundNames.length ? roundNames[totalRounds - r] : `Round ${r+1}`;
-        if(r === totalRounds) roundLabel = "Champion";
-
-        html += `<div class="flex flex-col justify-around gap-6 bracket-col w-48 shrink-0">`;
-        html += `<h5 class="text-xs font-bold text-emerald-400 uppercase tracking-widest text-center mb-2">${roundLabel}</h5>`;
-        
-        if (r === totalRounds) {
-            html += `<div class="p-3 glass rounded-lg border-2 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                        <input class="w-full bg-transparent outline-none font-bold text-center placeholder:opacity-40 text-emerald-300" placeholder="Winner">
-                     </div>`;
-        } else {
-            for (let m = 0; m < matchesInRound; m++) {
-                let t1 = r === 0 ? firstRoundMatchups[m][0] : "TBD";
-                let t2 = r === 0 ? firstRoundMatchups[m][1] : "TBD";
-                
-                html += `
-                <div class="glass p-2 rounded-lg border border-white/20 flex flex-col gap-1 bracket-match shadow-lg relative">
-                    <input class="bg-black/40 hover:bg-black/60 border border-transparent focus:border-emerald-500 px-2 py-1.5 text-sm rounded outline-none font-semibold transition-colors truncate" value="${t1}">
-                    <div class="h-[1px] w-full bg-white/10 my-0.5"></div>
-                    <input class="bg-black/40 hover:bg-black/60 border border-transparent focus:border-emerald-500 px-2 py-1.5 text-sm rounded outline-none font-semibold transition-colors truncate" value="${t2}">
-                </div>`;
-            }
-        }
-        html += `</div>`;
-    }
-    container.innerHTML = html;
+    generateBracket('archeryBracketContainer', entities);
 }
