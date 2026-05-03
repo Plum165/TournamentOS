@@ -933,6 +933,7 @@ function handleCSVUpload(event) {
         const rows = text.split('\n');
         
         let count = 0;
+        const importedParticipants = [];
         for (let i = 1; i < rows.length; i++) {
             const cols = rows[i].split(',');
             if (cols.length >= 2) {
@@ -942,14 +943,16 @@ function handleCSVUpload(event) {
                 const team = cols[3]?.trim() || 'Independent';
                 
                 if (name && !isNaN(points)) {
-                    participants.push({ id: Date.now().toString() + i, name, points, category, team });
+                    importedParticipants.push({ id: Date.now().toString() + i, name, points, category, team });
                     count++;
                 }
             }
         }
+
+        participants = importedParticipants;
         saveParticipants();
         renderParticipants();
-        alert(`Successfully imported ${count} participants from CSV!`);
+        alert(`Successfully imported ${count} participants from CSV. Previous rankings were replaced.`);
     };
     reader.readAsText(file);
     event.target.value = ''; 
