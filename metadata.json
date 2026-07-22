@@ -1,0 +1,6 @@
+{
+  "name": "TournamentOS Archery",
+  "description": "Professional archery scoring system supporting traditional keypad entries, interactive graphical targets with precision zoom, real-time coaching analytics, dynamic team brackets, and round-robin schedules.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
