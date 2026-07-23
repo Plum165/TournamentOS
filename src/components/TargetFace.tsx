@@ -287,7 +287,7 @@ export default function TargetFace({
 
       {/* Main Interactive Interactive Target Area */}
       <div 
-        style={{ background: 'radial-gradient(circle, #1e293b 0%, #0f172a 100%)' }}
+        style={{ background: 'radial-gradient(circle, var(--slate-800) 0%, var(--slate-900) 100%)' }}
         className="relative flex-1 min-h-[380px] md:min-h-[440px] rounded-xl border border-[var(--slate-700)] shadow-2xl flex items-center justify-center p-4 overflow-hidden select-none"
       >
         
