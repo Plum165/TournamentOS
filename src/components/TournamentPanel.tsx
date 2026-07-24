@@ -293,23 +293,27 @@ export default function TournamentPanel({
   };
 
   const updateMatchScore = (matchId: string, score1Str: string, score2Str: string) => {
-    const nextMatches = [...bracketMatches];
+    const nextMatches = bracketMatches.map((m) => {
+      if (m.id === matchId) {
+        return { ...m };
+      }
+      return m;
+    });
     const match = nextMatches.find((m) => m.id === matchId);
     if (!match || !match.entity1 || !match.entity2) return;
 
-    const s1 = parseInt(score1Str, 10);
-    const s2 = parseInt(score2Str, 10);
+    const s1 = score1Str === '' ? undefined : parseInt(score1Str, 10);
+    const s2 = score2Str === '' ? undefined : parseInt(score2Str, 10);
 
-    if (isNaN(s1) || isNaN(s2)) {
-      match.score1 = undefined;
-      match.score2 = undefined;
-      match.winnerId = undefined;
-    } else {
-      match.score1 = s1;
-      match.score2 = s2;
-      if (s1 > s2) match.winnerId = match.entity1.id;
-      else if (s2 > s1) match.winnerId = match.entity2.id;
+    match.score1 = isNaN(s1 as number) ? undefined : s1;
+    match.score2 = isNaN(s2 as number) ? undefined : s2;
+
+    if (match.score1 !== undefined && match.score2 !== undefined) {
+      if (match.score1 > match.score2) match.winnerId = match.entity1.id;
+      else if (match.score2 > match.score1) match.winnerId = match.entity2.id;
       else match.winnerId = undefined; // Draw is unresolved
+    } else {
+      match.winnerId = undefined;
     }
 
     // Reset downstream dependencies if score cleared
@@ -416,23 +420,27 @@ export default function TournamentPanel({
   };
 
   const updateRoundRobinScore = (matchId: string, s1: string, s2: string) => {
-    const nextMatches = [...roundRobinMatches];
+    const nextMatches = roundRobinMatches.map((m) => {
+      if (m.id === matchId) {
+        return { ...m };
+      }
+      return m;
+    });
     const match = nextMatches.find((m) => m.id === matchId);
     if (!match || match.isBye) return;
 
-    const val1 = parseInt(s1, 10);
-    const val2 = parseInt(s2, 10);
+    const val1 = s1 === '' ? undefined : parseInt(s1, 10);
+    const val2 = s2 === '' ? undefined : parseInt(s2, 10);
 
-    if (isNaN(val1) || isNaN(val2)) {
-      match.score1 = undefined;
-      match.score2 = undefined;
-      match.winnerId = undefined;
-    } else {
-      match.score1 = val1;
-      match.score2 = val2;
-      if (val1 > val2) match.winnerId = match.entity1.id;
-      else if (val2 > val1) match.winnerId = match.entity2.id;
+    match.score1 = isNaN(val1 as number) ? undefined : val1;
+    match.score2 = isNaN(val2 as number) ? undefined : val2;
+
+    if (match.score1 !== undefined && match.score2 !== undefined) {
+      if (match.score1 > match.score2) match.winnerId = match.entity1.id;
+      else if (match.score2 > match.score1) match.winnerId = match.entity2.id;
       else match.winnerId = 'draw';
+    } else {
+      match.winnerId = undefined;
     }
 
     setRoundRobinMatches(nextMatches);

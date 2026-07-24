@@ -216,10 +216,9 @@ export default function App() {
       if (saved) {
         historyList = JSON.parse(saved);
       }
-      if (!historyList.some((s) => s.id === sessionToSave.id)) {
-        const updated = [sessionToSave, ...historyList];
-        localStorage.setItem('archerySessionHistory', JSON.stringify(updated));
-      }
+      const filteredList = historyList.filter((s) => s.id !== sessionToSave.id);
+      const updated = [sessionToSave, ...filteredList];
+      localStorage.setItem('archerySessionHistory', JSON.stringify(updated));
     } catch (e) {
       console.error('Failed to save session to history list', e);
     }
@@ -369,37 +368,74 @@ export default function App() {
 
   const handleEndSessionEarly = () => {
     if (!activeSession) return;
-    if (confirm('Are you sure you want to finalize and save this session to history? Your recorded arrows and ends will be fully archived.')) {
-      const totalScore = activeSession.ends.reduce(
-        (sum, end) => sum + end.shots.reduce((sSum, s) => sSum + s.value, 0),
-        0
+
+    let sessionToSave = { ...activeSession };
+    
+    // Check if there are active shots in the current end
+    if (activeShots.length > 0) {
+      const confirmInclude = confirm(
+        `You have ${activeShots.length} unsaved arrow(s) in the current end. Would you like to include them in your final saved session history?`
       );
-
-      const existsIdx = participants.findIndex((p) => p.name.toLowerCase() === activeSession.archerName.toLowerCase());
-      if (totalScore > 0) {
-        if (existsIdx !== -1) {
-          const nextParts = [...participants];
-          nextParts[existsIdx].points = Math.max(nextParts[existsIdx].points, totalScore);
-          saveParticipants(nextParts);
-        } else {
-          const newArcher: Archer = {
-            id: `archer-auto-${Date.now()}`,
-            name: activeSession.archerName,
-            category: activeSession.format.includes('indoor') ? 'Recurve' : 'Compound',
-            team: 'Club Practice',
-            points: totalScore,
-          };
-          saveParticipants([...participants, newArcher]);
+      if (confirmInclude) {
+        let distance = activeSession.distances[0] || 60;
+        if (activeSession.format === 'outdoor-720') {
+          distance = activeSession.currentEndNumber > 6 ? activeSession.distances[1] || 50 : activeSession.distances[0] || 60;
+        } else if (activeSession.format === 'outdoor-1440') {
+          const idx = Math.min(Math.floor((activeSession.currentEndNumber - 1) / 6), 3);
+          distance = activeSession.distances[idx] || 30;
+        } else if (activeSession.format === 'outdoor-disa') {
+          const idx = Math.min(Math.floor((activeSession.currentEndNumber - 1) / 4), 3);
+          distance = activeSession.distances[idx] || 30;
         }
+
+        const newEnd: End = {
+          id: `end-${Date.now()}`,
+          endNumber: activeSession.currentEndNumber,
+          shots: [...activeShots],
+          distance,
+        };
+        sessionToSave.ends = [...activeSession.ends, newEnd];
+      } else {
+        const confirmSaveWithout = confirm(
+          "Are you sure you want to finish early and discard the current end's active arrows? Previously saved ends will be archived."
+        );
+        if (!confirmSaveWithout) return;
       }
-
-      // Save whatever session data we have to history
-      saveSessionToHistory(activeSession);
-
-      saveSession(null);
-      saveActiveShots([]);
-      handleViewContextChange('history');
+    } else {
+      if (!confirm('Are you sure you want to finish this session early and save it to history? All recorded ends will be fully archived.')) {
+        return;
+      }
     }
+
+    const totalScore = sessionToSave.ends.reduce(
+      (sum, end) => sum + end.shots.reduce((sSum, s) => sSum + s.value, 0),
+      0
+    );
+
+    const existsIdx = participants.findIndex((p) => p.name.toLowerCase() === sessionToSave.archerName.toLowerCase());
+    if (totalScore > 0) {
+      if (existsIdx !== -1) {
+        const nextParts = [...participants];
+        nextParts[existsIdx].points = Math.max(nextParts[existsIdx].points, totalScore);
+        saveParticipants(nextParts);
+      } else {
+        const newArcher: Archer = {
+          id: `archer-auto-${Date.now()}`,
+          name: sessionToSave.archerName,
+          category: sessionToSave.format.includes('indoor') ? 'Recurve' : 'Compound',
+          team: 'Club Practice',
+          points: totalScore,
+        };
+        saveParticipants([...participants, newArcher]);
+      }
+    }
+
+    // Save finalized session data to history
+    saveSessionToHistory(sessionToSave);
+
+    saveSession(null);
+    saveActiveShots([]);
+    handleViewContextChange('history');
   };
 
   // --- DATA RESET OS ---
@@ -527,6 +563,7 @@ export default function App() {
                         activeShots={activeShots}
                         onAddShot={handleAddShot}
                         onUndoShot={handleUndoShot}
+                        onRemoveShot={handleRemoveShot}
                         maxShots={activeSession.arrowsPerEnd}
                       />
                     </div>

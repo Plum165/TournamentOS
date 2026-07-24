@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { TARGET_DEFINITIONS, calculateScoreFromCoords } from '../targetDefinitions';
 import { Shot, TargetType } from '../types';
-import { ZoomIn, ZoomOut, RotateCcw, ArrowLeft, ArrowRight, Play, Delete, Undo, Check, Download } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, ArrowLeft, ArrowRight, Play, Delete, Undo, Check, Download, Hand, Crosshair } from 'lucide-react';
 
 interface TargetFaceProps {
   targetType: TargetType;
@@ -30,6 +30,9 @@ export default function TargetFace({
 }: TargetFaceProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Interaction Mode: 'place' (add arrows) vs 'pan' (drag to move the target around)
+  const [interactionMode, setInteractionMode] = useState<'place' | 'pan'>('place');
 
   // Zoom & Pan states
   const [zoomLevel, setZoomLevel] = useState(1); // 1x to 4x
@@ -74,6 +77,7 @@ export default function TargetFace({
 
   // Click on target face
   const handleTargetClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (interactionMode === 'pan') return;
     // If we're dragging a shot or panning, ignore clicks
     if (isDraggingShot || draggedShotId || isPanning) return;
 
@@ -109,6 +113,7 @@ export default function TargetFace({
   // Dragging shot handlers
   const handleShotMouseDown = (shotId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (interactionMode === 'pan') return;
     setDraggedShotId(shotId);
     setIsDraggingShot(true);
   };
@@ -119,7 +124,7 @@ export default function TargetFace({
     if (!coords) return;
 
     // 1. Drag Shot logic
-    if (isDraggingShot && draggedShotId) {
+    if (isDraggingShot && draggedShotId && interactionMode !== 'pan') {
       const { score, value } = calculateScoreFromCoords(coords.x, coords.y, targetType);
       onUpdateShot(draggedShotId, {
         x: parseFloat(coords.x.toFixed(1)),
@@ -130,8 +135,8 @@ export default function TargetFace({
       return;
     }
 
-    // 2. Pan logic (only when zoomed)
-    if (isPanning && zoomLevel > 1) {
+    // 2. Pan logic (either zoomed in or explicitly in pan mode)
+    if (isPanning && (zoomLevel > 1 || interactionMode === 'pan')) {
       const dx = e.clientX - panStart.x;
       const dy = e.clientY - panStart.y;
       setPanOffset((prev) => ({
@@ -164,11 +169,68 @@ export default function TargetFace({
 
   // Pan Start (using background click with Shift or on zoomed pan container)
   const handleBgMouseDown = (e: React.MouseEvent) => {
-    if (zoomLevel > 1 && (e.shiftKey || e.button === 1)) {
+    if (interactionMode === 'pan' || (zoomLevel > 1 && (e.shiftKey || e.button === 1))) {
       setIsPanning(true);
       setPanStart({ x: e.clientX, y: e.clientY });
       e.preventDefault();
     }
+  };
+
+  // Touch handlers for mobile/tablet drag and pan support
+  const handleTouchStart = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      if (interactionMode === 'pan') {
+        setIsPanning(true);
+        setPanStart({ x: touch.clientX, y: touch.clientY });
+      } else {
+        // Look for shot-marker class
+        const target = e.target as SVGElement;
+        const marker = target.closest('.shot-marker');
+        if (marker) {
+          const id = marker.getAttribute('data-shot-id');
+          if (id) {
+            setDraggedShotId(id);
+            setIsDraggingShot(true);
+            e.stopPropagation();
+          }
+        }
+      }
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const coords = getTargetCoords(touch.clientX, touch.clientY);
+      if (!coords) return;
+
+      if (isDraggingShot && draggedShotId && interactionMode !== 'pan') {
+        const { score, value } = calculateScoreFromCoords(coords.x, coords.y, targetType);
+        onUpdateShot(draggedShotId, {
+          x: parseFloat(coords.x.toFixed(1)),
+          y: parseFloat(coords.y.toFixed(1)),
+          score,
+          value,
+        });
+        e.preventDefault();
+      } else if (isPanning && (zoomLevel > 1 || interactionMode === 'pan')) {
+        const dx = touch.clientX - panStart.x;
+        const dy = touch.clientY - panStart.y;
+        setPanOffset((prev) => ({
+          x: prev.x + dx / zoomLevel,
+          y: prev.y + dy / zoomLevel,
+        }));
+        setPanStart({ x: touch.clientX, y: touch.clientY });
+        e.preventDefault();
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setDraggedShotId(null);
+    setIsDraggingShot(false);
+    setIsPanning(false);
   };
 
   // Zoom controls
@@ -315,6 +377,34 @@ export default function TargetFace({
           </select>
         </div>
 
+        {/* Interaction Mode Toggle */}
+        <div className="flex items-center gap-1 bg-[var(--slate-900)] rounded-lg p-1 border border-[var(--slate-700)]">
+          <button
+            onClick={() => setInteractionMode('place')}
+            className={`p-1.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ${
+              interactionMode === 'place'
+                ? 'bg-[var(--accent)] text-slate-900'
+                : 'text-white/60 hover:text-white hover:bg-white/5'
+            }`}
+            title="Place Arrow Mode (Standard)"
+          >
+            <Crosshair className="w-3.5 h-3.5" />
+            <span className="sr-only sm:not-sr-only sm:text-[9px]">Place</span>
+          </button>
+          <button
+            onClick={() => setInteractionMode('pan')}
+            className={`p-1.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ${
+              interactionMode === 'pan'
+                ? 'bg-[var(--accent)] text-slate-900'
+                : 'text-white/60 hover:text-white hover:bg-white/5'
+            }`}
+            title="Pan & Move Target Mode (Mobile-Friendly)"
+          >
+            <Hand className="w-3.5 h-3.5" />
+            <span className="sr-only sm:not-sr-only sm:text-[9px]">Pan</span>
+          </button>
+        </div>
+
         {/* View Controls */}
         <div className="flex items-center gap-1.5 bg-[var(--slate-900)] rounded-lg p-1 border border-[var(--slate-700)]">
           <button
@@ -382,12 +472,15 @@ export default function TargetFace({
           ref={svgRef}
           viewBox={`${vx} ${vy} ${boxSize} ${boxSize}`}
           className={`w-full max-w-[420px] aspect-square overflow-visible touch-none ${
-            isPanning ? 'cursor-grabbing' : zoomLevel > 1 ? 'cursor-grab' : 'cursor-crosshair'
+            isPanning ? 'cursor-grabbing' : zoomLevel > 1 || interactionMode === 'pan' ? 'cursor-grab' : 'cursor-crosshair'
           }`}
           onClick={handleTargetClick}
           onMouseMove={handleTargetMouseMove}
           onMouseUp={handleTargetMouseUp}
           onMouseDown={handleBgMouseDown}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           {/* Target Face Rings */}
           {sortedRings.map((ring) => (
@@ -462,6 +555,7 @@ export default function TargetFace({
           {(!isReplaying ? activeShots : replayShots.slice(0, replayIndex)).map((shot, index) => (
             <g
               key={shot.id}
+              data-shot-id={shot.id}
               className="shot-marker cursor-grab active:cursor-grabbing transition-transform duration-200"
               onMouseDown={(e) => handleShotMouseDown(shot.id, e)}
             >

@@ -8,6 +8,7 @@ interface NumpadProps {
   activeShots: Shot[];
   onAddShot: (shot: Shot) => void;
   onUndoShot: () => void;
+  onRemoveShot: (id: string) => void;
   maxShots: number;
 }
 
@@ -16,6 +17,7 @@ export default function Numpad({
   activeShots,
   onAddShot,
   onUndoShot,
+  onRemoveShot,
   maxShots,
 }: NumpadProps) {
   const def = TARGET_DEFINITIONS[targetType];
@@ -158,6 +160,46 @@ export default function Numpad({
           <div><span className="text-[var(--accent)] font-bold">M</span> : Miss</div>
           <div className="col-span-2"><span className="text-[var(--accent)] font-bold">Backspace / U</span> : Undo Last</div>
         </div>
+      </div>
+
+      {/* Active End Arrows List inside Numpad */}
+      <div className="bg-white/5 rounded-2xl p-4 border border-white/10 flex flex-col gap-3">
+        <h5 className="text-xs font-black uppercase tracking-wider text-white/40 border-b border-white/10 pb-2 flex items-center justify-between">
+          <span>Active End Arrows ({activeShots.length}/{maxShots})</span>
+          <span className="text-[var(--accent)] font-bold">Tap keypad/keyboard to record</span>
+        </h5>
+        
+        {activeShots.length === 0 ? (
+          <p className="text-xs text-white/40 text-center py-4 font-semibold">
+            Press the keypad buttons or keyboard numbers to enter arrow scores.
+          </p>
+        ) : (
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            {activeShots.map((shot, idx) => (
+              <div
+                key={shot.id}
+                className="bg-black/30 p-2.5 rounded-xl border border-white/5 flex flex-col items-center justify-center relative group animate-in zoom-in-95 duration-150"
+              >
+                <span
+                  className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-slate-950 bg-[var(--accent)] shadow-md"
+                >
+                  {idx + 1}
+                </span>
+                <span className="text-lg font-black text-white mt-1">{shot.score}</span>
+                <span className="text-[9px] text-white/40 font-mono mt-0.5">
+                  (Keypad)
+                </span>
+                <button
+                  onClick={() => onRemoveShot(shot.id)}
+                  className="absolute top-1 right-1 opacity-100 sm:opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity p-0.5 rounded-md hover:bg-red-500/10 cursor-pointer"
+                  title="Delete Arrow"
+                >
+                  <span className="text-sm font-bold font-sans px-1 select-none">×</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
