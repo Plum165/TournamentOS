@@ -440,6 +440,9 @@ export default function App() {
 
   // --- DATA RESET OS ---
   const handleResetAllData = () => {
+    if (!confirm('Are you absolutely sure you want to completely erase all data, competitors, sessions, and histories? This cannot be undone.')) {
+      return;
+    }
     localStorage.clear();
     setActiveSession(null);
     setActiveShots([]);
@@ -1175,10 +1178,10 @@ export default function App() {
           <div className="flex items-center gap-3">
             <h2 className="text-xs font-black tracking-widest uppercase text-[var(--accent)] flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse inline-block"></span>
-              {currentSport === 'none' ? 'Multi-Sport Shell' : currentSport === 'archery' ? 'Archery OS Pro' : 'Basketball Arena'}
+              {currentSport === 'none' ? 'Multi-Sport' : currentSport === 'archery' ? 'Archery' : 'Basketball'}
             </h2>
             <span className="text-slate-600 font-bold">/</span>
-            <span className="text-xs font-black uppercase text-slate-300 tracking-wider capitalize">{currentView} workspace</span>
+            <span className="text-xs font-black uppercase text-slate-300 tracking-wider capitalize">{currentView}</span>
           </div>
 
           <div className="flex items-center gap-6">
@@ -1192,16 +1195,6 @@ export default function App() {
                 <span className="text-[var(--accent)] font-bold">{aggregateScore} Pts</span>
               </div>
             )}
-
-            <div className="flex items-center gap-3 pl-4 border-l border-[var(--slate-800)]">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-black text-white leading-none">Tournament Admin</p>
-                <p className="text-[9px] text-[var(--accent)] uppercase tracking-widest mt-1 font-bold">PRO ACCOUNT</p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--slate-800)] to-[var(--slate-900)] border border-[var(--slate-700)] flex items-center justify-center font-black text-white text-xs">
-                TA
-              </div>
-            </div>
           </div>
         </header>
 

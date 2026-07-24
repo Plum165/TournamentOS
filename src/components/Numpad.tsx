@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Shot, TargetType } from '../types';
 import { TARGET_DEFINITIONS, calculateScoreFromCoords } from '../targetDefinitions';
 import { HelpCircle } from 'lucide-react';
@@ -21,6 +21,7 @@ export default function Numpad({
   maxShots,
 }: NumpadProps) {
   const def = TARGET_DEFINITIONS[targetType];
+  const [showShortcuts, setShowShortcuts] = useState(true);
 
   // Helper to generate coordinates within the proper ring zone
   const generateCoordsForScore = (score: string): { x: number; y: number } => {
@@ -148,19 +149,37 @@ export default function Numpad({
         </div>
       </div>
 
-      {/* Keyboard shortcuts help badge */}
-      <div className="bg-[var(--slate-800)]/50 rounded-xl p-4 border border-[var(--slate-700)] text-xs text-slate-400 space-y-1.5 font-medium leading-relaxed">
-        <p className="font-bold text-white flex items-center gap-1">
-          <HelpCircle className="w-3.5 h-3.5 text-[var(--accent)]" /> Keyboard Shortcuts:
-        </p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] font-mono">
-          <div><span className="text-[var(--accent)] font-bold">X</span> : X Ring</div>
-          <div><span className="text-[var(--accent)] font-bold">0</span> : 10 Ring</div>
-          <div><span className="text-[var(--accent)] font-bold">1 - 9</span> : 1 to 9 Rings</div>
-          <div><span className="text-[var(--accent)] font-bold">M</span> : Miss</div>
-          <div className="col-span-2"><span className="text-[var(--accent)] font-bold">Backspace / U</span> : Undo Last</div>
+      {/* Keyboard shortcuts help badge with close box - hidden on mobile, hover-friendly on desktop */}
+      {showShortcuts ? (
+        <div className="bg-[var(--slate-800)]/50 rounded-xl p-4 border border-[var(--slate-700)] text-xs text-slate-400 space-y-1.5 font-medium leading-relaxed relative group hidden md:block transition-all animate-in fade-in slide-in-from-top-1 duration-150">
+          <button
+            onClick={() => setShowShortcuts(false)}
+            className="absolute top-2.5 right-2.5 text-slate-500 hover:text-white transition-colors cursor-pointer text-sm font-black w-5 h-5 flex items-center justify-center rounded-full hover:bg-white/5"
+            title="Hide Shortcuts"
+          >
+            ×
+          </button>
+          <p className="font-bold text-white flex items-center gap-1.5">
+            <HelpCircle className="w-3.5 h-3.5 text-[var(--accent)]" /> Keyboard Shortcuts:
+          </p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] font-mono">
+            <div><span className="text-[var(--accent)] font-bold">X</span> : X Ring</div>
+            <div><span className="text-[var(--accent)] font-bold">0</span> : 10 Ring</div>
+            <div><span className="text-[var(--accent)] font-bold">1 - 9</span> : 1 to 9 Rings</div>
+            <div><span className="text-[var(--accent)] font-bold">M</span> : Miss</div>
+            <div className="col-span-2 border-t border-white/5 pt-1 mt-1"><span className="text-[var(--accent)] font-bold">Backspace / U</span> : Undo Last</div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="hidden md:flex items-center justify-end">
+          <button
+            onClick={() => setShowShortcuts(true)}
+            className="text-[10px] uppercase font-black tracking-wider text-slate-500 hover:text-[var(--accent)] transition-colors flex items-center gap-1 cursor-pointer bg-white/5 px-2 py-1 rounded-md border border-white/5"
+          >
+            <HelpCircle className="w-3 h-3" /> Show Shortcuts
+          </button>
+        </div>
+      )}
 
       {/* Active End Arrows List inside Numpad */}
       <div className="bg-white/5 rounded-2xl p-4 border border-white/10 flex flex-col gap-3">

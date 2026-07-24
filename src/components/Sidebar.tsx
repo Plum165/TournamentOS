@@ -36,7 +36,7 @@ export default function Sidebar({
       return [
         { id: 'setup', name: 'Configure Session', icon: Target },
         { id: 'scoring', name: 'Active Scoring', icon: PenTool },
-        { id: 'analytics', name: 'Analytics & Coaching', icon: BarChart3 },
+        { id: 'analytics', name: 'Shot Analytics', icon: BarChart3 },
         { id: 'history', name: 'Saved History', icon: Clock },
         { id: 'tournament', name: 'Tournaments & Rankings', icon: Trophy },
         { id: 'settings', name: 'Settings & Theme', icon: Settings },
@@ -75,7 +75,7 @@ export default function Sidebar({
             <span>TournamentOS</span>
           </h1>
           <p className="text-[9px] font-bold tracking-widest uppercase text-slate-400 mt-1 opacity-80">
-            Archery Scoring Pro
+            Archery Scoring
           </p>
         </div>
       );

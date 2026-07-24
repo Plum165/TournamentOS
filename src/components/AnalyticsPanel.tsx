@@ -25,7 +25,7 @@ export default function AnalyticsPanel({
         <BarChart3 className="w-16 h-16 text-white/20 mx-auto mb-4 animate-bounce" />
         <h3 className="text-xl font-bold text-white mb-2">No Shot Data Available</h3>
         <p className="text-white/60 text-sm">
-          Once you start shooting and recording arrow placements, your interactive coach, grouping plots, and performance charts will populate here!
+          Once you start shooting and recording arrow placements, your impact density heatmap, grouping plots, and performance charts will populate here!
         </p>
       </div>
     );
@@ -173,7 +173,7 @@ export default function AnalyticsPanel({
       adviceList.push({
         type: 'info',
         title: 'Establishing Baseline',
-        text: 'Keep shooting to collect more coordinates. The coaching engine will analyze horizontal/vertical variance ratios to isolate wind conditions, anchoring consistency, and sight alignment tips.',
+        text: 'Keep shooting to collect more coordinates. The analytics system will analyze horizontal/vertical variance ratios to isolate wind conditions, anchoring consistency, and sight alignment tips.',
         icon: Compass,
       });
     }
@@ -226,11 +226,11 @@ export default function AnalyticsPanel({
           onClick={() => setSelectedTab('coaching')}
           className={`flex-1 py-2 rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all cursor-pointer ${
             selectedTab === 'coaching'
-              ? 'bg-[var(--accent)] text-white shadow-md font-black'
+              ? 'bg-[var(--accent)] text-slate-900 shadow-md font-black'
               : 'text-slate-400 hover:text-white'
           }`}
         >
-          Coaching Engine
+          Impact Density Heatmap
         </button>
         <button
           onClick={() => setSelectedTab('grouping')}
@@ -307,9 +307,9 @@ export default function AnalyticsPanel({
               </p>
             </div>
 
-            {/* Smart Coaching Advice Stream */}
+            {/* Smart Diagnostic Advice Stream */}
             <div className="md:col-span-7 space-y-4">
-              <h4 className="font-bold text-sm text-white px-1">AI Coaching Insights</h4>
+              <h4 className="font-bold text-sm text-white px-1">Impact Diagnostics</h4>
               
               {adviceItems.map((advice, idx) => {
                 const Icon = advice.icon;
