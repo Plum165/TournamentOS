@@ -744,6 +744,8 @@ export default function App() {
           currentTheme={currentTheme}
           onThemeChange={handleThemeChange}
           onBackToOS={() => handleSportContextChange('none')}
+          currentView={currentView}
+          onViewChange={handleViewContextChange}
         />
       );
     }

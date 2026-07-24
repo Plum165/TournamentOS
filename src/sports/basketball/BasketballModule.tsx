@@ -22,16 +22,29 @@ interface BasketballModuleProps {
   currentTheme: string;
   onThemeChange: (themeId: string) => void;
   onBackToOS: () => void;
+  currentView: string;
+  onViewChange: (view: string) => void;
 }
 
 export default function BasketballModule({ 
   currentTheme, 
   onThemeChange, 
-  onBackToOS 
+  onBackToOS,
+  currentView,
+  onViewChange
 }: BasketballModuleProps) {
   const { alert, confirm } = useDialog();
-  // Views inside Basketball: 'setup' | 'scoring' | 'tournament' | 'settings'
-  const [subView, setSubView] = useState<'setup' | 'scoring' | 'tournament' | 'settings'>('setup');
+  // Derive subView from currentView prop
+  const subView = (
+    currentView === 'setup' || 
+    currentView === 'scoring' || 
+    currentView === 'tournament' || 
+    currentView === 'settings'
+  ) ? (currentView as 'setup' | 'scoring' | 'tournament' | 'settings') : 'setup';
+
+  const setSubView = (view: 'setup' | 'scoring' | 'tournament' | 'settings') => {
+    onViewChange(view);
+  };
 
   // --- STATE ---
   const [roster, setRoster] = useState<Player[]>([]);
