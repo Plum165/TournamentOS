@@ -378,73 +378,7 @@ export default function BasketballModule({
   const activeSelectedPlayer = roster.find(p => p.id === activePlayerId);
 
   return (
-    <div className="flex flex-col md:flex-row min-h-[calc(100vh-4rem)] w-full text-slate-100">
-      
-      {/* SECONDARY SIDE NAVIGATION FOR MODULE */}
-      <aside className="w-full md:w-64 bg-[var(--slate-800)]/80 md:min-h-[calc(100vh-4rem)] flex flex-col border-b md:border-b-0 md:border-r border-[var(--slate-700)] p-4 space-y-4">
-        <div className="p-2 border-b border-[var(--slate-700)]">
-          <h3 className="text-sm font-black text-[var(--accent)] tracking-widest uppercase flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent)] inline-block animate-pulse"></span>
-            Basketball
-          </h3>
-          <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">MODULE OS</p>
-        </div>
-
-        <nav className="flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible gap-1 pb-2 md:pb-0 scrollbar-none">
-          <button
-            onClick={() => { setSubView('setup'); setTournamentView('menu'); }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-              subView === 'setup' ? 'bg-[var(--accent)] text-slate-900 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-[var(--slate-700)]/40'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Roster Setup</span>
-          </button>
-          
-          <button
-            onClick={() => { setSubView('scoring'); setTournamentView('menu'); }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-              subView === 'scoring' ? 'bg-[var(--accent)] text-slate-900 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-[var(--slate-700)]/40'
-            }`}
-          >
-            <Activity className="w-4 h-4" />
-            <span>Active Game</span>
-          </button>
-
-          <button
-            onClick={() => { setSubView('tournament'); }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-              subView === 'tournament' ? 'bg-[var(--accent)] text-slate-900 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-[var(--slate-700)]/40'
-            }`}
-          >
-            <Trophy className="w-4 h-4" />
-            <span>Tournament</span>
-          </button>
-
-          <button
-            onClick={() => { setSubView('settings'); setTournamentView('menu'); }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-              subView === 'settings' ? 'bg-[var(--accent)] text-slate-900 shadow-md font-black' : 'text-slate-400 hover:text-white hover:bg-[var(--slate-700)]/40'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            <span>Settings</span>
-          </button>
-        </nav>
-
-        <div className="hidden md:block mt-auto pt-4 border-t border-[var(--slate-700)]">
-          <button
-            onClick={onBackToOS}
-            className="w-full flex items-center justify-center gap-1.5 py-2 border border-[var(--slate-700)] rounded-lg text-[10px] uppercase font-black tracking-wider text-slate-400 hover:text-white hover:bg-[var(--slate-700)]/40 cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back to OS
-          </button>
-        </div>
-      </aside>
-
-      {/* VIEWPORTS */}
-      <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+    <div className="w-full text-slate-100 p-6 md:p-8">
 
         {/* 1. ROSTER SETUP */}
         {subView === 'setup' && (
@@ -1192,7 +1126,7 @@ export default function BasketballModule({
           </div>
         )}
 
-      </main>
+
 
       {/* FLOAT BACK BUTTON FOR CONVENIENCE */}
       <div className="fixed bottom-6 right-6 z-50">
