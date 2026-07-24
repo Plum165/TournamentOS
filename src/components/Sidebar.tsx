@@ -197,7 +197,7 @@ export default function Sidebar({
                       : 'text-slate-300 hover:text-white hover:bg-[var(--slate-800)]'
                   }`}
                 >
-                  <Icon className="w-6 h-6 text-slate-900" />
+                  <Icon className={`w-6 h-6 ${isActive ? 'text-slate-900' : 'text-slate-400'}`} />
                   <span className="text-base">{item.name}</span>
                 </button>
               );

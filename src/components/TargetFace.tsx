@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { TARGET_DEFINITIONS, calculateScoreFromCoords } from '../targetDefinitions';
 import { Shot, TargetType } from '../types';
-import { ZoomIn, ZoomOut, RotateCcw, ArrowLeft, ArrowRight, Play, Delete, Undo, Check } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, ArrowLeft, ArrowRight, Play, Delete, Undo, Check, Download } from 'lucide-react';
 
 interface TargetFaceProps {
   targetType: TargetType;
@@ -216,6 +216,85 @@ export default function TargetFace({
   // Render Target Rings (sorted largest radius to smallest to overlay correctly)
   const sortedRings = [...def.rings].sort((a, b) => b.radius - a.radius);
 
+  // Export Target Plot as high-resolution PNG image
+  const handleExportPNG = () => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    try {
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svg);
+      
+      const canvas = document.createElement('canvas');
+      const size = 1000; // High resolution square
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Fill a premium dark background matching Slate 900
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(0, 0, size, size);
+
+      // Convert SVG code into image blob url
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+
+      img.onload = () => {
+        // Draw target plot in the center of canvas
+        ctx.drawImage(img, 50, 50, size - 100, size - 100);
+        
+        // Brand details at the bottom of the canvas
+        ctx.fillStyle = '#10B981'; // Emerald 500
+        ctx.font = '900 24px system-ui, sans-serif';
+        ctx.fillText('TOURNAMENTOS | ARCHERY PORT', 50, size - 35);
+
+        ctx.fillStyle = '#64748B'; // Slate 500
+        ctx.font = 'bold 16px system-ui, sans-serif';
+        const dateString = new Date().toLocaleString();
+        ctx.fillText(`Target: ${def.name} | Active End Arrows: ${activeShots.length} | Exported: ${dateString}`, 50, 35);
+
+        // Download PNG
+        const pngUrl = canvas.toDataURL('image/png');
+        const downloadLink = document.createElement('a');
+        downloadLink.href = pngUrl;
+        downloadLink.download = `ArcheryPlot-${targetType}-${Date.now()}.png`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        URL.revokeObjectURL(url);
+      };
+
+      img.src = url;
+    } catch (e) {
+      console.error('Failed to export PNG:', e);
+      alert('Could not compile PNG image. Saving vector SVG instead!');
+      handleExportSVG();
+    }
+  };
+
+  const handleExportSVG = () => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    try {
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svg);
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = url;
+      downloadLink.download = `ArcheryPlot-${targetType}-${Date.now()}.svg`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Failed to export SVG:', e);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4 w-full h-full animate-in fade-in duration-300" ref={containerRef}>
       
@@ -267,7 +346,14 @@ export default function TargetFace({
         </div>
 
         {/* Replay and Edit Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleExportPNG}
+            className="px-3 py-1.5 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Export Target Distribution as PNG"
+          >
+            <Download className="w-3.5 h-3.5" /> Export Plot
+          </button>
           <button
             onClick={startReplay}
             disabled={activeShots.length === 0 || isReplaying}
@@ -316,6 +402,41 @@ export default function TargetFace({
               className="transition-all duration-300"
             />
           ))}
+
+          {/* Target Face Ring Scoring Labels (1 to 10) */}
+          {def.rings.map((ring, idx) => {
+            if (ring.value === 'X') return null; // keep center clean
+            const prevRadius = idx > 0 ? def.rings[idx - 1].radius : 0;
+            const mid = (prevRadius + ring.radius) / 2;
+            
+            // Draw ring values along left, right, top, and bottom of each zone
+            const positions = [
+              { x: -mid, y: 0 },
+              { x: mid, y: 0 },
+              { x: 0, y: -mid },
+              { x: 0, y: mid }
+            ];
+            
+            return (
+              <g key={`labels-${ring.value}`} className="opacity-80">
+                {positions.map((pos, pIdx) => (
+                  <text
+                    key={pIdx}
+                    x={pos.x}
+                    y={pos.y}
+                    fill={ring.textColor || '#1E293B'}
+                    fontSize="7"
+                    fontWeight="900"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    className="select-none pointer-events-none font-sans"
+                  >
+                    {ring.value}
+                  </text>
+                ))}
+              </g>
+            );
+          })}
 
           {/* Hairlines for targeting reference */}
           <line x1="-210" y1="0" x2="210" y2="0" stroke="rgba(0,0,0,0.15)" strokeWidth="0.8" />

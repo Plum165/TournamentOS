@@ -132,10 +132,39 @@ export default function App() {
     const savedParticipants = localStorage.getItem('archeryParticipants');
     if (savedParticipants) {
       try {
-        setParticipants(JSON.parse(savedParticipants));
+        const parsed = JSON.parse(savedParticipants);
+        if (parsed && parsed.length > 0) {
+          setParticipants(parsed);
+        } else {
+          throw new Error('Empty roster');
+        }
       } catch (e) {
-        console.error('Failed to parse participants', e);
+        const defaultRoster = [
+          { id: 'p1', name: 'Kim Woojin', points: 716, category: 'Recurve', team: 'South Korea' },
+          { id: 'p2', name: 'Dave Cousins', points: 715, category: 'Compound', team: 'USA Pro' },
+          { id: 'p3', name: 'Sara Lopez', points: 713, category: 'Compound', team: 'Colombia' },
+          { id: 'p4', name: "Marcus D'Almeida", points: 712, category: 'Recurve', team: 'Brazil Elite' },
+          { id: 'p5', name: 'Brady Ellison', points: 709, category: 'Recurve', team: 'USA' },
+          { id: 'p6', name: 'Lim Sihyeon', points: 708, category: 'Recurve', team: 'South Korea' },
+          { id: 'p7', name: 'Mete Gazoz', points: 704, category: 'Recurve', team: 'Turkey' },
+          { id: 'p8', name: 'Casey Kaufhold', points: 698, category: 'Recurve', team: 'USA' },
+        ];
+        setParticipants(defaultRoster);
+        localStorage.setItem('archeryParticipants', JSON.stringify(defaultRoster));
       }
+    } else {
+      const defaultRoster = [
+        { id: 'p1', name: 'Kim Woojin', points: 716, category: 'Recurve', team: 'South Korea' },
+        { id: 'p2', name: 'Dave Cousins', points: 715, category: 'Compound', team: 'USA Pro' },
+        { id: 'p3', name: 'Sara Lopez', points: 713, category: 'Compound', team: 'Colombia' },
+        { id: 'p4', name: "Marcus D'Almeida", points: 712, category: 'Recurve', team: 'Brazil Elite' },
+        { id: 'p5', name: 'Brady Ellison', points: 709, category: 'Recurve', team: 'USA' },
+        { id: 'p6', name: 'Lim Sihyeon', points: 708, category: 'Recurve', team: 'South Korea' },
+        { id: 'p7', name: 'Mete Gazoz', points: 704, category: 'Recurve', team: 'Turkey' },
+        { id: 'p8', name: 'Casey Kaufhold', points: 698, category: 'Recurve', team: 'USA' },
+      ];
+      setParticipants(defaultRoster);
+      localStorage.setItem('archeryParticipants', JSON.stringify(defaultRoster));
     }
 
     // Custom sports load
@@ -479,22 +508,20 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-col gap-6">
-                  {/* Always render target face so user can see arrow coordinates visually */}
-                  <TargetFace
-                    targetType={targetType}
-                    onTargetTypeChange={setTargetType}
-                    activeShots={activeShots}
-                    onAddShot={handleAddShot}
-                    onRemoveShot={handleRemoveShot}
-                    onUpdateShot={handleUpdateShot}
-                    onUndoShot={handleUndoShot}
-                    maxShots={activeSession.arrowsPerEnd}
-                    historicalShots={activeSession.ends.flatMap((e) => e.shots)}
-                  />
-
-                  {/* Render Numpad keypad below when Manual Keypad is selected */}
-                  {scoringMethod === 'numpad' && (
-                    <div className="animate-in slide-in-from-top-4 duration-300">
+                  {scoringMethod === 'target' ? (
+                    <TargetFace
+                      targetType={targetType}
+                      onTargetTypeChange={setTargetType}
+                      activeShots={activeShots}
+                      onAddShot={handleAddShot}
+                      onRemoveShot={handleRemoveShot}
+                      onUpdateShot={handleUpdateShot}
+                      onUndoShot={handleUndoShot}
+                      maxShots={activeSession.arrowsPerEnd}
+                      historicalShots={activeSession.ends.flatMap((e) => e.shots)}
+                    />
+                  ) : (
+                    <div className="animate-in fade-in duration-300">
                       <Numpad
                         targetType={targetType}
                         activeShots={activeShots}
@@ -1090,7 +1117,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen w-full relative bg-[var(--slate-900)] text-[#f1f5f9] overflow-hidden font-sans">
+    <div className="flex flex-col md:flex-row h-screen w-full relative bg-[var(--slate-900)] text-[#f1f5f9] overflow-hidden font-sans">
       
       {/* Unified Adaptive Sidebar navigation */}
       <Sidebar

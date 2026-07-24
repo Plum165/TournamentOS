@@ -768,6 +768,35 @@ export default function TournamentPanel({
                               isMatchResolved ? 'border-[var(--accent)]/55 shadow-md shadow-[var(--accent)]/5' : ''
                             }`}
                           >
+                            {/* Connector Lines for Brackets */}
+                            {/* Left incoming line (from previous round) */}
+                            {rIdx > 0 && (
+                              <div className="absolute left-[-32px] top-1/2 w-[32px] h-[2px] bg-slate-600/60 pointer-events-none" />
+                            )}
+
+                            {/* Right outgoing line to meet parent branch */}
+                            {rIdx < bracketRoundsCount - 1 ? (
+                              <>
+                                <div className="absolute right-[-32px] top-1/2 w-[32px] h-[2px] bg-slate-600/60 pointer-events-none" />
+                                {match.matchIndex % 2 === 0 ? (
+                                  /* Sibling 1: Draw trunk down */
+                                  <div 
+                                    className="absolute right-[-32px] top-1/2 w-[2px] bg-slate-600/60 pointer-events-none" 
+                                    style={{ height: `${Math.pow(2, rIdx) * 32 + 20}px` }} 
+                                  />
+                                ) : (
+                                  /* Sibling 2: Draw trunk up */
+                                  <div 
+                                    className="absolute right-[-32px] bottom-1/2 w-[2px] bg-slate-600/60 pointer-events-none" 
+                                    style={{ height: `${Math.pow(2, rIdx) * 32 + 20}px` }} 
+                                  />
+                                )}
+                              </>
+                            ) : (
+                              /* Finals outgoing line to champion */
+                              <div className="absolute right-[-32px] top-1/2 w-[32px] h-[2px] bg-[var(--accent)]/50 pointer-events-none" />
+                            )}
+
                             <div className="space-y-2">
                               {/* Entity 1 Row */}
                               <div className="flex items-center justify-between gap-3">
@@ -836,7 +865,9 @@ export default function TournamentPanel({
                     : null;
                   
                   return (
-                    <div className="bg-[var(--slate-900)] p-4 rounded-lg border-2 border-[var(--accent)]/40 shadow-xl max-w-[180px] mx-auto">
+                    <div className="bg-[var(--slate-900)] p-4 rounded-lg border-2 border-[var(--accent)]/40 shadow-xl max-w-[180px] mx-auto relative">
+                      {/* Incoming connector from Finals */}
+                      <div className="absolute left-[-32px] top-1/2 w-[32px] h-[2px] bg-[var(--accent)]/50 pointer-events-none" />
                       <span className="text-xs font-black text-[var(--accent)] truncate block" title={winner?.name || 'TBD'}>
                         {winner?.name || 'Undecided'}
                       </span>

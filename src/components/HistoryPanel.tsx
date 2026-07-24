@@ -289,6 +289,40 @@ export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
                               />
                             ))}
 
+                            {/* Ring Scoring Labels (1 to 10) */}
+                            {def.rings.map((ring, idx) => {
+                              if (ring.value === 'X') return null; // keep center clean
+                              const prevRadius = idx > 0 ? def.rings[idx - 1].radius : 0;
+                              const mid = (prevRadius + ring.radius) / 2;
+                              
+                              const positions = [
+                                { x: -mid, y: 0 },
+                                { x: mid, y: 0 },
+                                { x: 0, y: -mid },
+                                { x: 0, y: mid }
+                              ];
+                              
+                              return (
+                                <g key={`hist-labels-${ring.value}`} className="opacity-70">
+                                  {positions.map((pos, pIdx) => (
+                                    <text
+                                      key={pIdx}
+                                      x={pos.x}
+                                      y={pos.y}
+                                      fill={ring.textColor || '#1E293B'}
+                                      fontSize="6"
+                                      fontWeight="900"
+                                      textAnchor="middle"
+                                      dominantBaseline="central"
+                                      className="select-none pointer-events-none font-sans"
+                                    >
+                                      {ring.value}
+                                    </text>
+                                  ))}
+                                </g>
+                              );
+                            })}
+
                             {/* Center crosshair */}
                             <line x1="-210" y1="0" x2="210" y2="0" stroke="rgba(0,0,0,0.15)" strokeWidth="0.8" />
                             <line x1="0" y1="-210" x2="0" y2="210" stroke="rgba(0,0,0,0.15)" strokeWidth="0.8" />
