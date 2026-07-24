@@ -7,6 +7,7 @@ import AnalyticsPanel from './components/AnalyticsPanel';
 import TournamentPanel from './components/TournamentPanel';
 import ThemeSelector, { THEMES } from './components/ThemeSelector';
 import BasketballModule from './sports/basketball/BasketballModule';
+import HistoryPanel from './components/HistoryPanel';
 import { ArcherySession, Shot, End, Archer, TargetType } from './types';
 import { 
   Target, HelpCircle, PenTool, Award, Play, ChevronRight, 
@@ -179,6 +180,22 @@ export default function App() {
     localStorage.setItem('archeryParticipants', JSON.stringify(list));
   };
 
+  const saveSessionToHistory = (sessionToSave: ArcherySession) => {
+    try {
+      const saved = localStorage.getItem('archerySessionHistory');
+      let historyList: ArcherySession[] = [];
+      if (saved) {
+        historyList = JSON.parse(saved);
+      }
+      if (!historyList.some((s) => s.id === sessionToSave.id)) {
+        const updated = [sessionToSave, ...historyList];
+        localStorage.setItem('archerySessionHistory', JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.error('Failed to save session to history list', e);
+    }
+  };
+
   const applyThemeVariables = (themeId: string) => {
     const theme = THEMES.find((t) => t.id === themeId) || THEMES[0];
     document.documentElement.setAttribute('data-theme', themeId);
@@ -218,6 +235,7 @@ export default function App() {
       ends: [],
       distances: config.distances,
       date: new Date().toLocaleDateString(),
+      targetType: config.targetType,
     };
 
     saveSession(newSession);
@@ -310,33 +328,48 @@ export default function App() {
         saveParticipants([...participants, newArcher]);
       }
 
-      alert(`Session Completed! Final Aggregate Score: ${totalScore} points. Saved to rankings.`);
-      handleViewContextChange('analytics');
+      // Save complete session data to history
+      saveSessionToHistory(updatedSession);
+
+      alert(`Session Completed! Final Aggregate Score: ${totalScore} points. Saved to rankings and history.`);
+      saveSession(null);
+      saveActiveShots([]);
+      handleViewContextChange('history');
     }
   };
 
   const handleEndSessionEarly = () => {
     if (!activeSession) return;
-    if (confirm('Are you sure you want to end this session? Incomplete progress will be formatted and saved to history.')) {
+    if (confirm('Are you sure you want to finalize and save this session to history? Your recorded arrows and ends will be fully archived.')) {
       const totalScore = activeSession.ends.reduce(
         (sum, end) => sum + end.shots.reduce((sSum, s) => sSum + s.value, 0),
         0
       );
 
+      const existsIdx = participants.findIndex((p) => p.name.toLowerCase() === activeSession.archerName.toLowerCase());
       if (totalScore > 0) {
-        const newArcher: Archer = {
-          id: `archer-auto-${Date.now()}`,
-          name: activeSession.archerName,
-          category: activeSession.format.includes('indoor') ? 'Recurve' : 'Compound',
-          team: 'Club Practice',
-          points: totalScore,
-        };
-        saveParticipants([...participants, newArcher]);
+        if (existsIdx !== -1) {
+          const nextParts = [...participants];
+          nextParts[existsIdx].points = Math.max(nextParts[existsIdx].points, totalScore);
+          saveParticipants(nextParts);
+        } else {
+          const newArcher: Archer = {
+            id: `archer-auto-${Date.now()}`,
+            name: activeSession.archerName,
+            category: activeSession.format.includes('indoor') ? 'Recurve' : 'Compound',
+            team: 'Club Practice',
+            points: totalScore,
+          };
+          saveParticipants([...participants, newArcher]);
+        }
       }
+
+      // Save whatever session data we have to history
+      saveSessionToHistory(activeSession);
 
       saveSession(null);
       saveActiveShots([]);
-      handleViewContextChange('setup');
+      handleViewContextChange('history');
     }
   };
 
@@ -445,7 +478,8 @@ export default function App() {
                   </button>
                 </div>
 
-                {scoringMethod === 'target' ? (
+                <div className="flex flex-col gap-6">
+                  {/* Always render target face so user can see arrow coordinates visually */}
                   <TargetFace
                     targetType={targetType}
                     onTargetTypeChange={setTargetType}
@@ -457,15 +491,20 @@ export default function App() {
                     maxShots={activeSession.arrowsPerEnd}
                     historicalShots={activeSession.ends.flatMap((e) => e.shots)}
                   />
-                ) : (
-                  <Numpad
-                    targetType={targetType}
-                    activeShots={activeShots}
-                    onAddShot={handleAddShot}
-                    onUndoShot={handleUndoShot}
-                    maxShots={activeSession.arrowsPerEnd}
-                  />
-                )}
+
+                  {/* Render Numpad keypad below when Manual Keypad is selected */}
+                  {scoringMethod === 'numpad' && (
+                    <div className="animate-in slide-in-from-top-4 duration-300">
+                      <Numpad
+                        targetType={targetType}
+                        activeShots={activeShots}
+                        onAddShot={handleAddShot}
+                        onUndoShot={handleUndoShot}
+                        maxShots={activeSession.arrowsPerEnd}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="lg:col-span-5 flex flex-col gap-6">
@@ -594,6 +633,9 @@ export default function App() {
             );
           }
           return <AnalyticsPanel session={activeSession} targetType={targetType} />;
+
+        case 'history':
+          return <HistoryPanel />;
 
         case 'tournament':
           return (

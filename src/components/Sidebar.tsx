@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Target, Trophy, PenTool, BarChart3, Settings, Menu, X,
-  LayoutGrid, Users, Activity, ArrowLeft, Dribbble
+  LayoutGrid, Users, Activity, ArrowLeft, Dribbble, Clock
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -37,6 +37,7 @@ export default function Sidebar({
         { id: 'setup', name: 'Configure Session', icon: Target },
         { id: 'scoring', name: 'Active Scoring', icon: PenTool },
         { id: 'analytics', name: 'Analytics & Coaching', icon: BarChart3 },
+        { id: 'history', name: 'Saved History', icon: Clock },
         { id: 'tournament', name: 'Tournaments & Rankings', icon: Trophy },
         { id: 'settings', name: 'Settings & Theme', icon: Settings },
       ];

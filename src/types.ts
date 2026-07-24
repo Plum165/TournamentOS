@@ -33,6 +33,7 @@ export interface ArcherySession {
   ends: End[];
   distances: number[]; // distances to shoot in this session
   date: string;
+  targetType?: TargetType;
 }
 
 export type TargetType = '122cm' | '80cm' | 'indoor-40cm' | 'practice';
