@@ -94,9 +94,7 @@ export default function ThemeSelector({
         </p>
         <button
           onClick={() => {
-            if (confirm('Are you absolutely sure you want to reset all data? This deletes your competitor list and current session.')) {
-              onResetAllData();
-            }
+            onResetAllData();
           }}
           className="px-6 py-2.5 bg-red-600/25 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/40 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
         >

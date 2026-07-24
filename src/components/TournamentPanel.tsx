@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Archer, RankingEntity, TournamentMatch, RoundRobinMatch } from '../types';
+import { useDialog } from './DialogProvider';
 import { Search, Trophy, GitMerge, ListOrdered, UploadCloud, UserPlus, Trash2, ArrowLeft, Users, ChevronRight, HelpCircle } from 'lucide-react';
 
 interface TournamentPanelProps {
@@ -17,6 +18,7 @@ export default function TournamentPanel({
   onImportCSV,
   onClearAll,
 }: TournamentPanelProps) {
+  const { alert } = useDialog();
   // Navigation subviews
   const [viewState, setViewState] = useState<'roster' | 'categorySelect' | 'bracket' | 'roundRobin'>('roster');
   const [tournamentMode, setTournamentMode] = useState<'single' | 'team'>('single');
@@ -39,10 +41,16 @@ export default function TournamentPanel({
   const [bracketRoundsCount, setBracketRoundsCount] = useState(1);
 
   // --- MANUAL PARTICIPANT ADD ---
-  const handleAddPart = () => {
-    if (!partName.trim()) return alert('Name is required');
+  const handleAddPart = async () => {
+    if (!partName.trim()) {
+      await alert('Name is required');
+      return;
+    }
     const points = parseInt(partPoints, 10);
-    if (isNaN(points)) return alert('Points must be a valid number');
+    if (isNaN(points)) {
+      await alert('Points must be a valid number');
+      return;
+    }
 
     const newArcher: Archer = {
       id: `archer-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
@@ -64,7 +72,7 @@ export default function TournamentPanel({
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const text = event.target?.result as string;
       const lines = text.split('\n');
       const importedArchers: Archer[] = [];
@@ -93,7 +101,7 @@ export default function TournamentPanel({
       }
 
       onImportCSV(importedArchers);
-      alert(`Imported ${importedArchers.length} archers successfully!`);
+      await alert(`Imported ${importedArchers.length} archers successfully!`);
     };
     reader.readAsText(file);
     e.target.value = ''; // Reset input
@@ -112,16 +120,16 @@ export default function TournamentPanel({
     .sort((a, b) => b.points - a.points);
 
   // --- BRACKET SEEDING ENGINE ---
-  const handleInitiateBracketMode = (mode: 'single' | 'team') => {
+  const handleInitiateBracketMode = async (mode: 'single' | 'team') => {
     if (participants.length === 0) {
-      alert('Roster is empty. Please add archers first.');
+      await alert('Roster is empty. Please add archers first.');
       return;
     }
     setTournamentMode(mode);
     setViewState('categorySelect');
   };
 
-  const handleBuildBracketForCategory = (cat: string) => {
+  const handleBuildBracketForCategory = async (cat: string) => {
     setSelectedCategory(cat);
 
     // 1. Get filtered participants
@@ -130,7 +138,7 @@ export default function TournamentPanel({
     const players = [...filtered].sort((a, b) => b.points - a.points);
 
     if (players.length < 2) {
-      alert(`Not enough archers in category "${cat}" to seed a bracket (minimum 2).`);
+      await alert(`Not enough archers in category "${cat}" to seed a bracket (minimum 2).`);
       return;
     }
 
@@ -353,10 +361,10 @@ export default function TournamentPanel({
   };
 
   // --- ROUND ROBIN SEEDING ENGINE ---
-  const handleInitiateRoundRobin = () => {
+  const handleInitiateRoundRobin = async () => {
     const players = [...sortedRankings];
     if (players.length < 3) {
-      alert('Need at least 3 archers to compile a Round Robin group schedule.');
+      await alert('Need at least 3 archers to compile a Round Robin group schedule.');
       return;
     }
 

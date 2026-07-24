@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDialog } from '../../components/DialogProvider';
 import { 
   Users, Activity, Trophy, Settings, Trash2, Plus, Play, 
   Download, AlertOctagon, ArrowLeft, GitMerge, ListOrdered, 
@@ -28,6 +29,7 @@ export default function BasketballModule({
   onThemeChange, 
   onBackToOS 
 }: BasketballModuleProps) {
+  const { alert, confirm } = useDialog();
   // Views inside Basketball: 'setup' | 'scoring' | 'tournament' | 'settings'
   const [subView, setSubView] = useState<'setup' | 'scoring' | 'tournament' | 'settings'>('setup');
 
@@ -103,10 +105,10 @@ export default function BasketballModule({
   };
 
   // --- ACTIONS ---
-  const handleAddPlayer = (e: React.FormEvent) => {
+  const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlayerName.trim() || !newPlayerNumber.trim()) {
-      alert('Please enter both a Player Name and Jersey Number.');
+      await alert('Please enter both a Player Name and Jersey Number.');
       return;
     }
 
@@ -128,16 +130,22 @@ export default function BasketballModule({
     setNewPlayerNumber('');
   };
 
-  const handleRemovePlayer = (id: string) => {
-    if (confirm('Are you sure you want to remove this player?')) {
+  const handleRemovePlayer = async (id: string) => {
+    const isConfirmed = await confirm('Are you sure you want to remove this player?');
+    if (isConfirmed) {
       const updated = roster.filter(p => p.id !== id);
       if (activePlayerId === id) setActivePlayerId(null);
       saveRoster(updated);
     }
   };
 
-  const handleAddStat = (type: '2PT' | '3PT' | 'FT' | 'FOUL') => {
+  const handleAddStat = async (type: '2PT' | '3PT' | 'FT' | 'FOUL') => {
     if (!activePlayerId) return;
+
+    // Use a flag or alert inside a map safely
+    let showFouledOutWarning = false;
+    let fouledOutPlayerName = '';
+    let fouledOutPlayerNumber = '';
 
     const updated = roster.map(p => {
       if (p.id !== activePlayerId) return p;
@@ -155,17 +163,24 @@ export default function BasketballModule({
       } else if (type === 'FOUL') {
         updatedPlayer.fouls += 1;
         if (updatedPlayer.fouls >= 5) {
-          alert(`WARNING: ${p.name} (#${p.number}) has reached 5 fouls and fouled out!`);
+          showFouledOutWarning = true;
+          fouledOutPlayerName = p.name;
+          fouledOutPlayerNumber = p.number;
         }
       }
       return updatedPlayer;
     });
 
     saveRoster(updated);
+
+    if (showFouledOutWarning) {
+      await alert(`WARNING: ${fouledOutPlayerName} (#${fouledOutPlayerNumber}) has reached 5 fouls and fouled out!`);
+    }
   };
 
-  const handleResetBasketballData = () => {
-    if (confirm('Are you sure you want to completely erase the roster and all basketball game stats?')) {
+  const handleResetBasketballData = async () => {
+    const isConfirmed = await confirm('Are you sure you want to completely erase the roster and all basketball game stats?');
+    if (isConfirmed) {
       saveRoster([]);
       setTeamAName('Home Team');
       setTeamBName('Away Team');
@@ -176,14 +191,14 @@ export default function BasketballModule({
       setRrMatches([]);
       setBracketRounds([]);
       setTournamentView('menu');
-      alert('Basketball data has been purged.');
+      await alert('Basketball data has been purged.');
     }
   };
 
   // CSV Export for Basketball Box Score
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     if (roster.length === 0) {
-      alert('No roster data to export!');
+      await alert('No roster data to export!');
       return;
     }
     let csv = 'Team,Player Name,Jersey #,Total Points (PTS),2-Pointers (FG),3-Pointers (3PT),Free Throws (FT),Fouls\n';
@@ -207,9 +222,9 @@ export default function BasketballModule({
   const teamBScore = roster.filter(p => p.team === 'B').reduce((sum, p) => sum + p.pts, 0);
 
   // --- ROUND ROBIN GENERATOR (Berger System Circle Rotation) ---
-  const handleGenerateRoundRobin = () => {
+  const handleGenerateRoundRobin = async () => {
     if (roundRobinTeamCount < 3) {
-      alert('Please enter at least 3 teams.');
+      await alert('Please enter at least 3 teams.');
       return;
     }
 
@@ -251,9 +266,9 @@ export default function BasketballModule({
   };
 
   // --- ELIMINATION BRACKET GENERATOR ---
-  const handleGenerateBracket = () => {
+  const handleGenerateBracket = async () => {
     if (bracketTeamCount < 2) {
-      alert('Please enter at least 2 teams.');
+      await alert('Please enter at least 2 teams.');
       return;
     }
 

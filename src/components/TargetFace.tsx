@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { TARGET_DEFINITIONS, calculateScoreFromCoords } from '../targetDefinitions';
 import { Shot, TargetType } from '../types';
+import { useDialog } from './DialogProvider';
 import { ZoomIn, ZoomOut, RotateCcw, ArrowLeft, ArrowRight, Play, Delete, Undo, Check, Download, Hand, Crosshair } from 'lucide-react';
 
 interface TargetFaceProps {
@@ -28,6 +29,7 @@ export default function TargetFace({
   archerColor = '#10B981', // Default emerald
   historicalShots = [],
 }: TargetFaceProps) {
+  const { alert } = useDialog();
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -76,7 +78,7 @@ export default function TargetFace({
   };
 
   // Click on target face
-  const handleTargetClick = (e: React.MouseEvent<SVGSVGElement>) => {
+  const handleTargetClick = async (e: React.MouseEvent<SVGSVGElement>) => {
     if (interactionMode === 'pan') return;
     // If we're dragging a shot or panning, ignore clicks
     if (isDraggingShot || draggedShotId || isPanning) return;
@@ -92,7 +94,7 @@ export default function TargetFace({
     if (dist > 220) return; // Outside target ring boundary + margin
 
     if (activeShots.length >= maxShots) {
-      alert(`Limit reached. Please save this end or undo an arrow.`);
+      await alert(`Limit reached. Please save this end or undo an arrow.`);
       return;
     }
 
@@ -279,7 +281,7 @@ export default function TargetFace({
   const sortedRings = [...def.rings].sort((a, b) => b.radius - a.radius);
 
   // Export Target Plot as high-resolution PNG image
-  const handleExportPNG = () => {
+  const handleExportPNG = async () => {
     const svg = svgRef.current;
     if (!svg) return;
 
@@ -303,7 +305,7 @@ export default function TargetFace({
       const url = URL.createObjectURL(svgBlob);
       const img = new Image();
 
-      img.onload = () => {
+      img.onload = async () => {
         // Draw target plot in the center of canvas
         ctx.drawImage(img, 50, 50, size - 100, size - 100);
         
@@ -332,7 +334,7 @@ export default function TargetFace({
       img.src = url;
     } catch (e) {
       console.error('Failed to export PNG:', e);
-      alert('Could not compile PNG image. Saving vector SVG instead!');
+      await alert('Could not compile PNG image. Saving vector SVG instead!');
       handleExportSVG();
     }
   };

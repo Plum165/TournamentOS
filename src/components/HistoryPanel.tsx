@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArcherySession, Shot, End, TargetType } from '../types';
 import { TARGET_DEFINITIONS } from '../targetDefinitions';
+import { useDialog } from './DialogProvider';
 import { 
   Clock, Calendar, Download, Trash2, ChevronDown, ChevronUp, 
   Target, Award, FileSpreadsheet, Eye, HelpCircle, ArrowLeftRight
@@ -11,6 +12,7 @@ interface HistoryPanelProps {
 }
 
 export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
+  const { confirm } = useDialog();
   const [history, setHistory] = useState<ArcherySession[]>([]);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
 
@@ -29,16 +31,18 @@ export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
     }
   };
 
-  const deleteSession = (id: string, name: string) => {
-    if (confirm(`Are you sure you want to permanently delete the session for "${name}"?`)) {
+  const deleteSession = async (id: string, name: string) => {
+    const isConfirmed = await confirm(`Are you sure you want to permanently delete the session for "${name}"?`);
+    if (isConfirmed) {
       const updated = history.filter((s) => s.id !== id);
       setHistory(updated);
       localStorage.setItem('archerySessionHistory', JSON.stringify(updated));
     }
   };
 
-  const clearAllHistory = () => {
-    if (confirm('Are you sure you want to permanently clear ALL saved sessions? This cannot be undone.')) {
+  const clearAllHistory = async () => {
+    const isConfirmed = await confirm('Are you sure you want to permanently clear ALL saved sessions? This cannot be undone.');
+    if (isConfirmed) {
       setHistory([]);
       localStorage.removeItem('archerySessionHistory');
     }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArcherySession, TargetType } from '../types';
 import { Home, Sun, BookOpen, ExternalLink, User, Target, ChevronRight, Trophy } from 'lucide-react';
+import { useDialog } from './DialogProvider';
 
 interface RosterSetupProps {
   onStartSession: (config: {
@@ -16,6 +17,7 @@ interface RosterSetupProps {
 }
 
 export default function RosterSetup({ onStartSession, activeSession }: RosterSetupProps) {
+  const { alert } = useDialog();
   const [archerName, setArcherName] = useState('Default Archer');
   const [category, setCategory] = useState('Recurve');
   const [format, setFormat] = useState<ArcherySession['format']>('outdoor-720');
@@ -49,9 +51,9 @@ export default function RosterSetup({ onStartSession, activeSession }: RosterSet
     }
   };
 
-  const handleLaunch = () => {
+  const handleLaunch = async () => {
     if (!archerName.trim()) {
-      alert('Archer name is required.');
+      await alert('Archer name is required.');
       return;
     }
 

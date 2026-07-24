@@ -8,6 +8,7 @@ import TournamentPanel from './components/TournamentPanel';
 import ThemeSelector, { THEMES } from './components/ThemeSelector';
 import BasketballModule from './sports/basketball/BasketballModule';
 import HistoryPanel from './components/HistoryPanel';
+import { useDialog } from './components/DialogProvider';
 import { ArcherySession, Shot, End, Archer, TargetType } from './types';
 import { 
   Target, HelpCircle, PenTool, Award, Play, ChevronRight, 
@@ -56,6 +57,8 @@ function getHSLColorsForTheme(hex: string) {
 }
 
 export default function App() {
+  const { alert: customAlert, confirm: customConfirm } = useDialog();
+
   // Global Routing: 'none' (OS main) | 'archery' | 'basketball'
   const [currentSport, setCurrentSport] = useState<'none' | 'archery' | 'basketball'>('none');
   const [currentView, setCurrentView] = useState<string>('dashboard');
@@ -295,12 +298,12 @@ export default function App() {
     saveActiveShots(nextShots);
   };
 
-  const handleSaveEnd = () => {
+  const handleSaveEnd = async () => {
     if (!activeSession) return;
     const limit = activeSession.arrowsPerEnd;
 
     if (activeShots.length < limit) {
-      alert(`Please record all ${limit} arrows for this end before saving.`);
+      await customAlert(`Please record all ${limit} arrows for this end before saving.`);
       return;
     }
 
@@ -359,21 +362,21 @@ export default function App() {
       // Save complete session data to history
       saveSessionToHistory(updatedSession);
 
-      alert(`Session Completed! Final Aggregate Score: ${totalScore} points. Saved to rankings and history.`);
+      await customAlert(`Session Completed! Final Aggregate Score: ${totalScore} points. Saved to rankings and history.`);
       saveSession(null);
       saveActiveShots([]);
       handleViewContextChange('history');
     }
   };
 
-  const handleEndSessionEarly = () => {
+  const handleEndSessionEarly = async () => {
     if (!activeSession) return;
 
     let sessionToSave = { ...activeSession };
     
     // Check if there are active shots in the current end
     if (activeShots.length > 0) {
-      const confirmInclude = confirm(
+      const confirmInclude = await customConfirm(
         `You have ${activeShots.length} unsaved arrow(s) in the current end. Would you like to include them in your final saved session history?`
       );
       if (confirmInclude) {
@@ -396,13 +399,16 @@ export default function App() {
         };
         sessionToSave.ends = [...activeSession.ends, newEnd];
       } else {
-        const confirmSaveWithout = confirm(
+        const confirmSaveWithout = await customConfirm(
           "Are you sure you want to finish early and discard the current end's active arrows? Previously saved ends will be archived."
         );
         if (!confirmSaveWithout) return;
       }
     } else {
-      if (!confirm('Are you sure you want to finish this session early and save it to history? All recorded ends will be fully archived.')) {
+      const confirmEarly = await customConfirm(
+        'Are you sure you want to finish this session early and save it to history? All recorded ends will be fully archived.'
+      );
+      if (!confirmEarly) {
         return;
       }
     }
@@ -439,8 +445,9 @@ export default function App() {
   };
 
   // --- DATA RESET OS ---
-  const handleResetAllData = () => {
-    if (!confirm('Are you absolutely sure you want to completely erase all data, competitors, sessions, and histories? This cannot be undone.')) {
+  const handleResetAllData = async () => {
+    const confirmReset = await customConfirm('Are you absolutely sure you want to completely erase all data, competitors, sessions, and histories? This cannot be undone.');
+    if (!confirmReset) {
       return;
     }
     localStorage.clear();
@@ -454,14 +461,14 @@ export default function App() {
     applyThemeVariables('dark-emerald');
     setCurrentSport('none');
     setCurrentView('dashboard');
-    alert('All multi-sport registers and local database profiles have been completely erased.');
+    await customAlert('All multi-sport registers and local database profiles have been completely erased.');
   };
 
   // --- CUSTOM SPORT ACTIONS ---
-  const handleCreateCustomSport = (e: React.FormEvent) => {
+  const handleCreateCustomSport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customSportName.trim()) {
-      alert('Please enter a name for your custom sport.');
+      await customAlert('Please enter a name for your custom sport.');
       return;
     }
 
@@ -476,11 +483,12 @@ export default function App() {
     setCustomSports(updated);
     localStorage.setItem('customSportsRegistry', JSON.stringify(updated));
     setCustomSportName('');
-    alert(`Custom sport template "${newSport.name}" has been successfully initialized!`);
+    await customAlert(`Custom sport template "${newSport.name}" has been successfully initialized!`);
   };
 
-  const handleDeleteCustomSport = (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete the "${name}" custom template?`)) {
+  const handleDeleteCustomSport = async (id: string, name: string) => {
+    const confirmDelete = await customConfirm(`Are you sure you want to delete the "${name}" custom template?`);
+    if (confirmDelete) {
       const updated = customSports.filter(s => s.id !== id);
       setCustomSports(updated);
       localStorage.setItem('customSportsRegistry', JSON.stringify(updated));
@@ -839,7 +847,7 @@ export default function App() {
                       Custom tournament OS module template branded in gorgeous style accents. Scorer dashboard and rosters available.
                     </p>
                     <button 
-                      onClick={() => alert(`Custom template "${cs.name}" is successfully established! Configure roster and matches on the dashboard.`)}
+                      onClick={async () => await customAlert(`Custom template "${cs.name}" is successfully established! Configure roster and matches on the dashboard.`)}
                       className="w-full py-2.5 font-black text-xs uppercase tracking-widest rounded-lg transition-all text-white cursor-pointer"
                       style={{ backgroundColor: cs.color }}
                     >
@@ -998,8 +1006,8 @@ export default function App() {
                           Adjust Setup
                         </button>
                         <button
-                          onClick={() => {
-                            alert('Simulating Darts Arena! Matches scored and saved locally.');
+                          onClick={async () => {
+                            await customAlert('Simulating Darts Arena! Matches scored and saved locally.');
                             setDartsModalOpen(false);
                             setDartsMatchReady(false);
                           }}
