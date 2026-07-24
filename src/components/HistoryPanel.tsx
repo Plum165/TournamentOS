@@ -123,6 +123,88 @@ export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
     document.body.removeChild(link);
   };
 
+  const exportSessionPlotPNG = async (session: ArcherySession, defName: string) => {
+    const svg = document.getElementById(`svg-history-${session.id}`) as unknown as SVGSVGElement | null;
+    if (!svg) {
+      alert('Could not find the target SVG element.');
+      return;
+    }
+
+    try {
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svg);
+      
+      const canvas = document.createElement('canvas');
+      const size = 1000; // High resolution square
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Fill a premium dark background matching Slate 900
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(0, 0, size, size);
+
+      // Convert SVG code into image blob url
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+
+      img.onload = () => {
+        // Draw target plot in the center of canvas
+        ctx.drawImage(img, 50, 50, size - 100, size - 100);
+        
+        // Brand details at the bottom of the canvas
+        ctx.fillStyle = '#10B981'; // Emerald 500
+        ctx.font = '900 24px system-ui, sans-serif';
+        ctx.fillText('TOURNAMENTOS | ARCHERY PORT', 50, size - 35);
+
+        ctx.fillStyle = '#64748B'; // Slate 500
+        ctx.font = 'bold 16px system-ui, sans-serif';
+        const dateString = new Date().toLocaleString();
+        const totalArrows = session.ends.flatMap(e => e.shots).length;
+        ctx.fillText(`Archer: ${session.archerName} | Target: ${defName} | Total Arrows: ${totalArrows} | Exported: ${dateString}`, 50, 35);
+
+        // Download PNG
+        const pngUrl = canvas.toDataURL('image/png');
+        const downloadLink = document.createElement('a');
+        downloadLink.href = pngUrl;
+        downloadLink.download = `ArcheryPlot-${session.archerName.replace(/\s+/g, '_')}-${session.id}.png`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        URL.revokeObjectURL(url);
+      };
+
+      img.src = url;
+    } catch (e) {
+      console.error('Failed to export history PNG:', e);
+      // Fallback: Export SVG
+      exportSessionPlotSVG(session);
+    }
+  };
+
+  const exportSessionPlotSVG = (session: ArcherySession) => {
+    const svg = document.getElementById(`svg-history-${session.id}`) as unknown as SVGSVGElement | null;
+    if (!svg) return;
+    try {
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svg);
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = url;
+      downloadLink.download = `ArcheryPlot-${session.archerName.replace(/\s+/g, '_')}-${session.id}.svg`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Failed to export history SVG:', e);
+    }
+  };
+
   const toggleExpand = (id: string) => {
     setExpandedSessionId(expandedSessionId === id ? null : id);
   };
@@ -248,13 +330,20 @@ export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
                     {/* Action buttons inside detail */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-[var(--slate-800)]/80 p-3.5 rounded-xl border border-white/5">
                       <span className="text-xs font-bold text-slate-300">Detailed scorecard and arrow heatmap breakdown:</span>
-                      <div className="flex gap-2 w-full sm:w-auto">
+                      <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                         <button
                           onClick={() => exportSessionToCSV(session)}
                           className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-900 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
                         >
                           <Download className="w-4 h-4" />
                           <span>Export Excel (CSV)</span>
+                        </button>
+                        <button
+                          onClick={() => exportSessionPlotPNG(session, def.name)}
+                          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-900 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                        >
+                          <Target className="w-4 h-4" />
+                          <span>Export Target Plot (PNG)</span>
                         </button>
                         <button
                           onClick={() => deleteSession(session.id, session.archerName)}
@@ -277,6 +366,7 @@ export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
                         
                         <div className="relative w-full max-w-[260px] aspect-square">
                           <svg
+                            id={`svg-history-${session.id}`}
                             viewBox="-220 -220 440 440"
                             className="w-full h-full overflow-visible"
                           >
@@ -348,9 +438,18 @@ export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
                             ))}
                           </svg>
                         </div>
-                        <span className="text-[9px] font-mono text-slate-500 mt-2">
-                          Plotted {allShots.length} shots recorded during session.
-                        </span>
+                        <div className="flex flex-col items-center mt-2.5">
+                          <span className="text-[9px] font-mono text-slate-500">
+                            Plotted {allShots.length} shots recorded during session.
+                          </span>
+                          <button
+                            onClick={() => exportSessionPlotPNG(session, def.name)}
+                            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest border border-white/5 transition-all cursor-pointer"
+                          >
+                            <Download className="w-3 h-3 text-[var(--accent)]" />
+                            <span>Download Image</span>
+                          </button>
+                        </div>
                       </div>
 
                       {/* Stats and stats counts on right */}

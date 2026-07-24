@@ -36,7 +36,7 @@ export interface ArcherySession {
   targetType?: TargetType;
 }
 
-export type TargetType = '122cm' | '80cm' | 'indoor-40cm' | 'practice';
+export type TargetType = '122cm' | '80cm' | 'indoor-40cm' | 'indoor-40cm-single' | 'practice';
 
 export interface TargetFaceDefinition {
   id: TargetType;

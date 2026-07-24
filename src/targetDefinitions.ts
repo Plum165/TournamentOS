@@ -37,7 +37,7 @@ export const TARGET_DEFINITIONS: Record<TargetType, TargetFaceDefinition> = {
   },
   'indoor-40cm': {
     id: 'indoor-40cm',
-    name: 'Indoor 40cm Face',
+    name: 'Indoor 40cm Face (5-10)',
     rings: [
       { value: 'X', radius: 10, color: '#FEF08A', textColor: '#1E293B' },
       { value: '10', radius: 20, color: '#FACC15', textColor: '#1E293B' },
@@ -46,6 +46,23 @@ export const TARGET_DEFINITIONS: Record<TargetType, TargetFaceDefinition> = {
       { value: '7', radius: 125, color: '#DC2626', textColor: '#FFFFFF' },
       { value: '6', radius: 160, color: '#3B82F6', textColor: '#FFFFFF' },
       { value: '5', radius: 200, color: '#2563EB', textColor: '#FFFFFF' },
+    ],
+  },
+  'indoor-40cm-single': {
+    id: 'indoor-40cm-single',
+    name: 'Indoor 40cm Single Spot (1-10)',
+    rings: [
+      { value: 'X', radius: 10, color: '#FEF08A', textColor: '#1E293B' },
+      { value: '10', radius: 20, color: '#FACC15', textColor: '#1E293B' },
+      { value: '9', radius: 40, color: '#EAB308', textColor: '#1E293B' },
+      { value: '8', radius: 60, color: '#EF4444', textColor: '#FFFFFF' },
+      { value: '7', radius: 80, color: '#DC2626', textColor: '#FFFFFF' },
+      { value: '6', radius: 100, color: '#3B82F6', textColor: '#FFFFFF' },
+      { value: '5', radius: 120, color: '#2563EB', textColor: '#FFFFFF' },
+      { value: '4', radius: 140, color: '#1E293B', textColor: '#FFFFFF' },
+      { value: '3', radius: 160, color: '#0F172A', textColor: '#FFFFFF' },
+      { value: '2', radius: 180, color: '#F1F5F9', textColor: '#1E293B' },
+      { value: '1', radius: 200, color: '#CBD5E1', textColor: '#1E293B' },
     ],
   },
   'practice': {

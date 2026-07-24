@@ -117,8 +117,8 @@ export default function Numpad({
     { value: '5', colorClass: 'bg-[var(--blue)]/85 text-white hover:brightness-110 font-bold' },
     { value: '4', colorClass: 'bg-[var(--slate-700)] text-white hover:brightness-110' },
     { value: '3', colorClass: 'bg-[var(--slate-700)]/80 text-white hover:brightness-110' },
-    { value: '2', colorClass: 'bg-[var(--slate-700)]/60 text-slate-200 hover:brightness-110' },
-    { value: '1', colorClass: 'bg-[var(--slate-700)]/40 text-slate-300 hover:brightness-110' },
+    { value: '2', colorClass: 'bg-white text-[var(--slate-900)] hover:bg-slate-100 font-bold shadow-sm' },
+    { value: '1', colorClass: 'bg-slate-100 text-[var(--slate-900)] hover:bg-slate-200 font-bold shadow-sm' },
     { value: 'M', colorClass: 'bg-[#475569] text-white hover:brightness-110 font-bold' },
   ];
 
