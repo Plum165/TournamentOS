@@ -861,51 +861,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Custom sport creator form on dashboard */}
-            <div className="glass p-6 rounded-2xl border border-[var(--slate-700)] shadow-lg space-y-4">
-              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                <Plus className="w-4 h-4 text-[var(--accent)]" /> Add Custom Sport Template
-              </h4>
-              <form onSubmit={handleCreateCustomSport} className="flex flex-col md:flex-row gap-4 items-end">
-                <div className="flex-1 w-full">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider mb-1 block">Sport Title</label>
-                  <input
-                    type="text"
-                    placeholder="Volleyball, Soccer, Tennis..."
-                    value={customSportName}
-                    onChange={(e) => setCustomSportName(e.target.value)}
-                    className="w-full bg-[var(--slate-900)] border border-[var(--slate-700)] rounded-lg px-3 py-2.5 text-xs text-white outline-none focus:border-[var(--accent)]"
-                  />
-                </div>
-                <div className="w-full md:w-36">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider mb-1 block">Branding Color</label>
-                  <input
-                    type="color"
-                    value={customSportColor}
-                    onChange={(e) => setCustomSportColor(e.target.value)}
-                    className="w-full h-9 bg-transparent border-0 cursor-pointer rounded outline-none"
-                  />
-                </div>
-                <div className="w-full md:w-44">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider mb-1 block">Visual Icon</label>
-                  <select
-                    value={customSportIcon}
-                    onChange={(e) => setCustomSportIcon(e.target.value as 'activity' | 'award' | 'star')}
-                    className="w-full bg-[var(--slate-900)] border border-[var(--slate-700)] rounded-lg px-3 py-2.5 text-xs text-white outline-none focus:border-[var(--accent)] cursor-pointer"
-                  >
-                    <option value="activity">Activity (Pulse)</option>
-                    <option value="award">Award (Badge)</option>
-                    <option value="star">Star (Favorite)</option>
-                  </select>
-                </div>
-                <button
-                  type="submit"
-                  className="w-full md:w-auto px-5 py-2.5 bg-[var(--accent)] text-slate-900 font-black text-xs uppercase tracking-widest rounded-lg hover:brightness-110 cursor-pointer"
-                >
-                  Deploy Template
-                </button>
-              </form>
-            </div>
+
 
             {/* DARTS MODAL DIALOG */}
             {dartsModalOpen && (
