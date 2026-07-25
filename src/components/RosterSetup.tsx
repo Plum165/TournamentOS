@@ -29,7 +29,7 @@ export default function RosterSetup({ onStartSession, activeSession }: RosterSet
   const applyPreset = (selectedFormat: ArcherySession['format']) => {
     setFormat(selectedFormat);
     if (selectedFormat === 'indoor') {
-      setTargetType('indoor-40cm');
+      setTargetType('indoor-40cm-single');
       setTotalEnds(10); // standard indoor 30 arrows (10 ends of 3)
       setArrowsPerEnd(3);
     } else if (selectedFormat === 'outdoor-720') {
@@ -168,6 +168,7 @@ export default function RosterSetup({ onStartSession, activeSession }: RosterSet
               <option value="122cm">122cm Target Face (Outdoor standard)</option>
               <option value="80cm">80cm Target Face (Short range standard)</option>
               <option value="indoor-40cm">Indoor 40cm Target Face (Rings 10-5)</option>
+              <option value="indoor-40cm-single">Indoor 40cm Single Spot (Rings 10-1)</option>
               <option value="practice">Emerald Practice Target Face</option>
             </select>
           </div>
