@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Archer, RankingEntity, TournamentMatch, RoundRobinMatch } from '../types';
 import { useDialog } from './DialogProvider';
 import { Search, Trophy, GitMerge, ListOrdered, UploadCloud, UserPlus, Trash2, ArrowLeft, Users, ChevronRight, HelpCircle } from 'lucide-react';
@@ -18,11 +18,18 @@ export default function TournamentPanel({
   onImportCSV,
   onClearAll,
 }: TournamentPanelProps) {
-  const { alert } = useDialog();
-  // Navigation subviews
-  const [viewState, setViewState] = useState<'roster' | 'categorySelect' | 'bracket' | 'roundRobin'>('roster');
-  const [tournamentMode, setTournamentMode] = useState<'single' | 'team'>('single');
-  const [selectedCategory, setSelectedCategory] = useState<string>('Everyone');
+  const { alert, confirm } = useDialog();
+
+  // Navigation subviews with localStorage persistence
+  const [viewState, setViewState] = useState<'roster' | 'categorySelect' | 'bracket' | 'roundRobin'>(() => {
+    return (localStorage.getItem('archery_tournament_viewState') as any) || 'roster';
+  });
+  const [tournamentMode, setTournamentMode] = useState<'single' | 'team'>(() => {
+    return (localStorage.getItem('archery_tournament_mode') as any) || 'single';
+  });
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+    return localStorage.getItem('archery_tournament_selectedCategory') || 'Everyone';
+  });
 
   // Input states
   const [partName, setPartName] = useState('');
@@ -30,15 +37,72 @@ export default function TournamentPanel({
   const [partCategory, setPartCategory] = useState('Recurve');
   const [partTeam, setPartTeam] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [divisionSearchQuery, setDivisionSearchQuery] = useState('');
 
-  // Round Robin state
-  const [roundRobinMatches, setRoundRobinMatches] = useState<RoundRobinMatch[]>([]);
-  const [currentRoundRobinRound, setCurrentRoundRobinRound] = useState(1);
+  // Round Robin state with localStorage persistence
+  const [roundRobinMatches, setRoundRobinMatches] = useState<RoundRobinMatch[]>(() => {
+    try {
+      const saved = localStorage.getItem('archery_tournament_roundRobinMatches');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [currentRoundRobinRound, setCurrentRoundRobinRound] = useState<number>(() => {
+    const saved = localStorage.getItem('archery_tournament_currentRoundRobinRound');
+    return saved ? parseInt(saved, 10) : 1;
+  });
 
-  // Bracket state
-  const [bracketMatches, setBracketMatches] = useState<TournamentMatch[]>([]);
-  const [bracketSize, setBracketSize] = useState(2);
-  const [bracketRoundsCount, setBracketRoundsCount] = useState(1);
+  // Bracket state with localStorage persistence
+  const [bracketMatches, setBracketMatches] = useState<TournamentMatch[]>(() => {
+    try {
+      const saved = localStorage.getItem('archery_tournament_bracketMatches');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [bracketSize, setBracketSize] = useState<number>(() => {
+    const saved = localStorage.getItem('archery_tournament_bracketSize');
+    return saved ? parseInt(saved, 10) : 2;
+  });
+  const [bracketRoundsCount, setBracketRoundsCount] = useState<number>(() => {
+    const saved = localStorage.getItem('archery_tournament_bracketRoundsCount');
+    return saved ? parseInt(saved, 10) : 1;
+  });
+
+  // Sync state changes to localStorage
+  useEffect(() => {
+    localStorage.setItem('archery_tournament_viewState', viewState);
+  }, [viewState]);
+
+  useEffect(() => {
+    localStorage.setItem('archery_tournament_mode', tournamentMode);
+  }, [tournamentMode]);
+
+  useEffect(() => {
+    localStorage.setItem('archery_tournament_selectedCategory', selectedCategory);
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    localStorage.setItem('archery_tournament_roundRobinMatches', JSON.stringify(roundRobinMatches));
+  }, [roundRobinMatches]);
+
+  useEffect(() => {
+    localStorage.setItem('archery_tournament_currentRoundRobinRound', String(currentRoundRobinRound));
+  }, [currentRoundRobinRound]);
+
+  useEffect(() => {
+    localStorage.setItem('archery_tournament_bracketMatches', JSON.stringify(bracketMatches));
+  }, [bracketMatches]);
+
+  useEffect(() => {
+    localStorage.setItem('archery_tournament_bracketSize', String(bracketSize));
+  }, [bracketSize]);
+
+  useEffect(() => {
+    localStorage.setItem('archery_tournament_bracketRoundsCount', String(bracketRoundsCount));
+  }, [bracketRoundsCount]);
 
   // --- MANUAL PARTICIPANT ADD ---
   const handleAddPart = async () => {
@@ -555,15 +619,19 @@ export default function TournamentPanel({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-1 block">Division</label>
-                    <select
+                    <input
+                      type="text"
+                      list="roster-divisions-presets"
                       value={partCategory}
                       onChange={(e) => setPartCategory(e.target.value)}
-                      className="w-full bg-[var(--slate-900)] border border-[var(--slate-700)] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[var(--accent)] cursor-pointer"
-                    >
-                      <option value="Recurve">Recurve</option>
-                      <option value="Compound">Compound</option>
-                      <option value="Barebow">Barebow</option>
-                    </select>
+                      className="w-full bg-[var(--slate-900)] border border-[var(--slate-700)] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[var(--accent)]"
+                      placeholder="e.g. Recurve, Compound..."
+                    />
+                    <datalist id="roster-divisions-presets">
+                      {['Recurve', 'Compound', 'Barebow', ...new Set(participants.map(p => p.category))].map((div) => (
+                        <option key={div} value={div} />
+                      ))}
+                    </datalist>
                   </div>
                   <div>
                     <label className="text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-1 block">Club / Team</label>
@@ -654,12 +722,12 @@ export default function TournamentPanel({
                   className="w-full bg-[var(--slate-900)] border border-[var(--slate-700)] rounded-lg pl-9 pr-3 py-2 text-xs text-white outline-none focus:border-[var(--accent)]"
                 />
               </div>
-              <div className="flex bg-[var(--slate-800)] rounded-lg p-0.5 border border-[var(--slate-700)] h-fit">
-                {['Everyone', 'Recurve', 'Compound', 'Barebow'].map((cat) => (
+              <div className="flex flex-wrap bg-[var(--slate-800)] rounded-lg p-0.5 border border-[var(--slate-700)] h-fit gap-0.5">
+                {categories.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                       selectedCategory === cat ? 'bg-[var(--accent)] text-white font-black' : 'text-slate-400 hover:text-white'
                     }`}
                   >
@@ -756,25 +824,44 @@ export default function TournamentPanel({
               </p>
             </div>
 
+            {/* Dynamic Division Search */}
+            <div className="relative max-w-md mx-auto">
+              <Search className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search divisions..."
+                value={divisionSearchQuery}
+                onChange={(e) => setDivisionSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-[var(--accent)]"
+              />
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto pt-4">
-              {categories.map((cat) => {
-                const count = cat === 'Everyone' ? participants.length : participants.filter((p) => p.category === cat).length;
-                return (
-                  <button
-                    key={cat}
-                    disabled={count < 2}
-                    onClick={() => handleBuildBracketForCategory(cat)}
-                    className="p-5 bg-black/40 border border-white/10 hover:border-[var(--accent)]/50 rounded-2xl text-center transition-all group disabled:opacity-40 disabled:hover:border-white/10"
-                  >
-                    <span className="text-sm font-black text-white uppercase tracking-wider block group-hover:text-[var(--accent)] transition-colors">
-                      {cat}
-                    </span>
-                    <span className="text-[10px] text-white/40 block mt-1 font-semibold">
-                      {count} Archers Registered
-                    </span>
-                  </button>
-                );
-              })}
+              {categories
+                .filter((cat) => cat.toLowerCase().includes(divisionSearchQuery.toLowerCase()))
+                .map((cat) => {
+                  const count = cat === 'Everyone' ? participants.length : participants.filter((p) => p.category === cat).length;
+                  return (
+                    <button
+                      key={cat}
+                      disabled={count < 2}
+                      onClick={() => handleBuildBracketForCategory(cat)}
+                      className="p-5 bg-black/40 border border-white/10 hover:border-[var(--accent)]/50 rounded-2xl text-center transition-all group disabled:opacity-40 disabled:hover:border-white/10"
+                    >
+                      <span className="text-sm font-black text-white uppercase tracking-wider block group-hover:text-[var(--accent)] transition-colors">
+                        {cat}
+                      </span>
+                      <span className="text-[10px] text-white/40 block mt-1 font-semibold">
+                        {count} Archers Registered
+                      </span>
+                    </button>
+                  );
+                })}
+              {categories.filter((cat) => cat.toLowerCase().includes(divisionSearchQuery.toLowerCase())).length === 0 && (
+                <div className="col-span-2 text-center text-xs text-white/40 py-4 font-semibold">
+                  No matching divisions found.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -784,12 +871,31 @@ export default function TournamentPanel({
       {viewState === 'bracket' && (
         <div className="space-y-6 animate-in fade-in duration-300">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 glass p-3 rounded-lg shadow-xl border border-[var(--slate-700)]">
-            <button
-              onClick={() => setViewState('roster')}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white uppercase tracking-wider cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back to Standings
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setViewState('roster')}
+                className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white uppercase tracking-wider cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" /> Back to Standings
+              </button>
+              <span className="text-slate-600">|</span>
+              <button
+                onClick={async () => {
+                  const confirmed = await confirm('Are you sure you want to discard this tournament bracket and start over?');
+                  if (confirmed) {
+                    setBracketMatches([]);
+                    setBracketSize(2);
+                    setBracketRoundsCount(1);
+                    setViewState('roster');
+                    localStorage.removeItem('archery_tournament_bracketMatches');
+                    localStorage.removeItem('archery_tournament_viewState');
+                  }
+                }}
+                className="text-xs font-bold text-red-400 hover:text-red-300 uppercase tracking-wider cursor-pointer"
+              >
+                Reset Bracket
+              </button>
+            </div>
             <div className="text-center sm:text-right">
               <span className="text-xs font-bold text-[var(--accent)] uppercase tracking-wider">
                 {tournamentMode === 'single' ? 'Singles Elimination' : 'Balanced Team Pairs'} • {selectedCategory}
@@ -1001,12 +1107,30 @@ export default function TournamentPanel({
       {viewState === 'roundRobin' && (
         <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 glass p-3 rounded-lg shadow-xl border border-[var(--slate-700)]">
-            <button
-              onClick={() => setViewState('roster')}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white uppercase tracking-wider cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back to Standings
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setViewState('roster')}
+                className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white uppercase tracking-wider cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" /> Back to Standings
+              </button>
+              <span className="text-slate-600">|</span>
+              <button
+                onClick={async () => {
+                  const confirmed = await confirm('Are you sure you want to discard this round-robin league and start over?');
+                  if (confirmed) {
+                    setRoundRobinMatches([]);
+                    setCurrentRoundRobinRound(1);
+                    setViewState('roster');
+                    localStorage.removeItem('archery_tournament_roundRobinMatches');
+                    localStorage.removeItem('archery_tournament_viewState');
+                  }
+                }}
+                className="text-xs font-bold text-red-400 hover:text-red-300 uppercase tracking-wider cursor-pointer"
+              >
+                Reset League
+              </button>
+            </div>
             <div>
               <span className="text-xs font-bold text-[var(--accent)] uppercase tracking-wider">
                 BERGER SYSTEM ROUND ROBIN LEAGUE

@@ -100,15 +100,19 @@ export default function RosterSetup({ onStartSession, activeSession }: RosterSet
           </div>
           <div>
             <label className="text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-1 block">Archer Division</label>
-            <select
+            <input
+              type="text"
+              list="setup-divisions-presets"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-[var(--slate-900)] border border-[var(--slate-700)] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[var(--accent)] cursor-pointer"
-            >
-              <option value="Recurve">Recurve Division</option>
-              <option value="Compound">Compound Division</option>
-              <option value="Barebow">Barebow Division</option>
-            </select>
+              className="w-full bg-[var(--slate-900)] border border-[var(--slate-700)] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-[var(--accent)]"
+              placeholder="e.g. Recurve, Compound, Barebow..."
+            />
+            <datalist id="setup-divisions-presets">
+              <option value="Recurve" />
+              <option value="Compound" />
+              <option value="Barebow" />
+            </datalist>
           </div>
         </div>
       </div>
