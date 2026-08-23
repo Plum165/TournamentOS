@@ -309,8 +309,19 @@ export default function BasketballModule({
         });
       }
 
+      // Add Bronze Medal Match if we are in the Final round and have at least Semifinals
+      if (r === roundsCount - 1 && roundsCount >= 2) {
+        matches.push({
+          id: `bm-${r}-1`, // matchIndex 1 is the Bronze Match
+          team1: '',
+          team2: '',
+          score1: '',
+          score2: ''
+        });
+      }
+
       generatedRounds.push({
-        label,
+        label: r === roundsCount - 1 && roundsCount >= 2 ? 'Finals & Bronze Match' : label,
         matches
       });
     }
@@ -350,12 +361,15 @@ export default function BasketballModule({
       if (isTeam1) match.score1 = val;
       else match.score2 = val;
 
-      // Auto-advance winner to next round if scores are filled and valid
       const s1 = parseInt(match.score1 || '');
       const s2 = parseInt(match.score2 || '');
+      const isSemis = roundIdx === nextRounds.length - 2;
+      const nextRoundIdx = roundIdx + 1;
+
       if (!isNaN(s1) && !isNaN(s2) && s1 !== s2) {
         const winner = s1 > s2 ? match.team1 : match.team2;
-        const nextRoundIdx = roundIdx + 1;
+        const loser = s1 > s2 ? match.team2 : match.team1;
+
         if (nextRoundIdx < nextRounds.length) {
           const nextMatchIdx = Math.floor(matchIdx / 2);
           const isSlot1 = matchIdx % 2 === 0;
@@ -364,6 +378,42 @@ export default function BasketballModule({
             nextMatch.team1 = winner;
           } else {
             nextMatch.team2 = winner;
+          }
+
+          if (isSemis) {
+            const bronzeMatch = nextRounds[nextRoundIdx].matches[1];
+            if (bronzeMatch) {
+              if (matchIdx === 0) {
+                bronzeMatch.team1 = loser;
+              } else {
+                bronzeMatch.team2 = loser;
+              }
+            }
+          }
+        }
+      } else {
+        // If score is cleared or invalid, clear downstream slots
+        if (nextRoundIdx < nextRounds.length) {
+          const nextMatchIdx = Math.floor(matchIdx / 2);
+          const isSlot1 = matchIdx % 2 === 0;
+          const nextMatch = nextRounds[nextRoundIdx].matches[nextMatchIdx];
+          if (isSlot1) {
+            nextMatch.team1 = '';
+          } else {
+            nextMatch.team2 = '';
+          }
+
+          if (isSemis) {
+            const bronzeMatch = nextRounds[nextRoundIdx].matches[1];
+            if (bronzeMatch) {
+              if (matchIdx === 0) {
+                bronzeMatch.team1 = '';
+              } else {
+                bronzeMatch.team2 = '';
+              }
+              bronzeMatch.score1 = '';
+              bronzeMatch.score2 = '';
+            }
           }
         }
       }
@@ -960,13 +1010,23 @@ export default function BasketballModule({
 
                           {round.matches.map((match, mIdx) => {
                             const isResolved = match.score1 !== '' && match.score2 !== '' && match.score1 !== match.score2;
+                            const isFinalRound = rIdx === bracketRounds.length - 1;
+                            const isGoldMatch = isFinalRound && mIdx === 0;
+                            const isBronzeMatch = isFinalRound && mIdx === 1;
+
                             return (
                               <div
                                 key={match.id}
                                 className={`p-2 bg-[var(--slate-900)]/60 rounded-lg border flex flex-col gap-1 shadow-md relative ${
-                                  isResolved ? 'border-emerald-500/40 shadow-emerald-500/5' : 'border-[var(--slate-700)]'
+                                  isGoldMatch ? 'border-yellow-500/40 shadow-lg' : isBronzeMatch ? 'border-amber-600/40 shadow-lg' : (isResolved ? 'border-emerald-500/40 shadow-emerald-500/5' : 'border-[var(--slate-700)]')
                                 }`}
                               >
+                                <div className="text-[9px] font-black uppercase tracking-wider border-b border-white/5 pb-1 mb-1 flex justify-between items-center">
+                                  <span className={isGoldMatch ? 'text-yellow-500' : isBronzeMatch ? 'text-amber-500' : 'text-slate-400'}>
+                                    {isGoldMatch ? '🥇 Gold Match' : isBronzeMatch ? '🥉 Bronze Match' : `Match ${mIdx + 1}`}
+                                  </span>
+                                </div>
+
                                 {/* Team 1 */}
                                 <div className="flex items-center justify-between gap-1.5">
                                   <input
@@ -1009,27 +1069,64 @@ export default function BasketballModule({
                       ))}
 
                       {/* Final Champion Column */}
-                      <div className="flex flex-col justify-center gap-2 min-w-[160px] text-center self-center h-full">
-                        <Trophy className="w-8 h-8 text-[var(--accent)] mx-auto animate-bounce mb-1" />
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">CHAMPION</span>
+                      <div className="flex flex-col justify-center gap-3 min-w-[180px] text-center self-center h-full">
+                        <div className="space-y-1">
+                          <Trophy className="w-8 h-8 text-yellow-500 mx-auto animate-bounce mb-1" />
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">PODIUM STANDINGS</span>
+                        </div>
                         
                         {(() => {
                           const lastRound = bracketRounds[bracketRounds.length - 1];
                           const finalMatch = lastRound?.matches[0];
-                          let champion = 'Undecided';
+                          const bronzeMatch = lastRound?.matches[1];
+
+                          let gold = 'Undecided';
+                          let silver = '';
+                          let bronze = '';
+
                           if (finalMatch) {
                             const s1 = parseInt(finalMatch.score1 || '');
                             const s2 = parseInt(finalMatch.score2 || '');
                             if (!isNaN(s1) && !isNaN(s2) && s1 !== s2) {
-                              champion = s1 > s2 ? finalMatch.team1 : finalMatch.team2;
+                              gold = s1 > s2 ? finalMatch.team1 : finalMatch.team2;
+                              silver = s1 > s2 ? finalMatch.team2 : finalMatch.team1;
+                            }
+                          }
+
+                          if (bronzeMatch) {
+                            const s1 = parseInt(bronzeMatch.score1 || '');
+                            const s2 = parseInt(bronzeMatch.score2 || '');
+                            if (!isNaN(s1) && !isNaN(s2) && s1 !== s2) {
+                              bronze = s1 > s2 ? bronzeMatch.team1 : bronzeMatch.team2;
                             }
                           }
 
                           return (
-                            <div className="bg-[var(--slate-900)] p-3 rounded-lg border-2 border-[var(--accent)]/40 shadow-xl max-w-[150px] mx-auto">
-                              <span className="text-xs font-black text-[var(--accent)] truncate block" title={champion}>
-                                {champion}
-                              </span>
+                            <div className="space-y-2">
+                              <div className="bg-[var(--slate-900)] p-3 rounded-lg border-2 border-yellow-500/50 shadow-xl max-w-[150px] mx-auto">
+                                <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest block mb-0.5">🥇 Gold</span>
+                                <span className="text-xs font-black text-white truncate block" title={gold}>
+                                  {gold}
+                                </span>
+                              </div>
+
+                              {silver && (
+                                <div className="bg-[var(--slate-900)]/90 p-2.5 rounded-lg border border-slate-400/30 shadow-md max-w-[140px] mx-auto">
+                                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">🥈 Silver</span>
+                                  <span className="text-xs font-black text-slate-200 truncate block" title={silver}>
+                                    {silver}
+                                  </span>
+                                </div>
+                              )}
+
+                              {bronze && (
+                                <div className="bg-[var(--slate-900)]/90 p-2.5 rounded-lg border border-amber-600/30 shadow-md max-w-[140px] mx-auto">
+                                  <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest block mb-0.5">🥉 Bronze</span>
+                                  <span className="text-xs font-black text-slate-200 truncate block" title={bronze}>
+                                    {bronze}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           );
                         })()}

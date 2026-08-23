@@ -254,6 +254,17 @@ export default function TournamentPanel({
       }
     }
 
+    // Add Bronze Medal Match if there are at least 2 rounds (Semifinals and Finals)
+    if (rounds >= 2) {
+      allMatches.push({
+        id: `match-${rounds - 1}-1`,
+        roundIndex: rounds - 1,
+        matchIndex: 1,
+        entity1: null,
+        entity2: null,
+      });
+    }
+
     // Auto-advance BYE winners from Round 0 to Round 1 immediately
     advanceWinners(allMatches, rounds);
 
@@ -263,6 +274,15 @@ export default function TournamentPanel({
 
   // ADVANCE WINNER helper
   const advanceWinners = (matches: TournamentMatch[], rounds: number) => {
+    // Reset any existing Bronze Match slots first to prevent duplicate stale state before recalculation
+    if (rounds >= 2) {
+      const bronzeMatch = matches.find((m) => m.roundIndex === rounds - 1 && m.matchIndex === 1);
+      if (bronzeMatch) {
+        bronzeMatch.entity1 = null;
+        bronzeMatch.entity2 = null;
+      }
+    }
+
     for (let r = 0; r < rounds - 1; r++) {
       const currentRoundMatches = matches.filter((m) => m.roundIndex === r);
       currentRoundMatches.forEach((m) => {
@@ -292,6 +312,21 @@ export default function TournamentPanel({
                 nextMatch.winnerId = nextMatch.entity1.id;
                 nextMatch.score1 = 1;
                 nextMatch.score2 = 0;
+              }
+            }
+          }
+
+          // If this is the Semifinal round (rounds - 2), also advance the loser to the Bronze Medal Match
+          if (r === rounds - 2) {
+            const loserEntity = m.winnerId === m.entity1?.id ? m.entity2 : m.entity1;
+            if (loserEntity) {
+              const bronzeMatch = matches.find((nm) => nm.roundIndex === r + 1 && nm.matchIndex === 1);
+              if (bronzeMatch) {
+                if (m.matchIndex === 0) {
+                  bronzeMatch.entity1 = loserEntity;
+                } else if (m.matchIndex === 1) {
+                  bronzeMatch.entity2 = loserEntity;
+                }
               }
             }
           }
@@ -337,6 +372,21 @@ export default function TournamentPanel({
   const clearDownstreamSlots = (matches: TournamentMatch[], round: number, matchIdx: number) => {
     let currentRound = round;
     let currentIdx = matchIdx;
+
+    // Reset bronze match slots if clearing a Semifinal
+    if (round === bracketRoundsCount - 2) {
+      const bronzeMatch = matches.find((m) => m.roundIndex === bracketRoundsCount - 1 && m.matchIndex === 1);
+      if (bronzeMatch) {
+        if (matchIdx === 0) {
+          bronzeMatch.entity1 = null;
+        } else if (matchIdx === 1) {
+          bronzeMatch.entity2 = null;
+        }
+        bronzeMatch.score1 = undefined;
+        bronzeMatch.score2 = undefined;
+        bronzeMatch.winnerId = undefined;
+      }
+    }
 
     while (currentRound < bracketRoundsCount - 1) {
       const nextRound = currentRound + 1;
@@ -767,7 +817,7 @@ export default function TournamentPanel({
                 return (
                   <div key={rIdx} className="flex flex-col justify-around gap-12 min-w-[240px] relative">
                     <h5 className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent)] border-b border-[var(--slate-700)] pb-2 text-center">
-                      {getRoundLabel(rIdx)}
+                      {rIdx === bracketRoundsCount - 1 ? 'Finals & Bronze Match' : getRoundLabel(rIdx)}
                     </h5>
 
                     <div className="flex-1 flex flex-col justify-around gap-8">
@@ -776,14 +826,25 @@ export default function TournamentPanel({
                         const isEnt2Winner = match.winnerId && match.entity2 && match.winnerId === match.entity2.id;
 
                         const isMatchResolved = !!match.winnerId;
+                        const isBronzeMatch = match.roundIndex === bracketRoundsCount - 1 && match.matchIndex === 1;
+                        const isGoldMatch = match.roundIndex === bracketRoundsCount - 1 && match.matchIndex === 0;
 
                         return (
                           <div
                             key={match.id}
-                            className={`p-3 bg-[var(--slate-900)] rounded-lg border border-[var(--slate-700)] flex flex-col gap-3 relative shadow-md transition-all ${
-                              isMatchResolved ? 'border-[var(--accent)]/55 shadow-md shadow-[var(--accent)]/5' : ''
+                            className={`p-3 bg-[var(--slate-900)] rounded-lg border flex flex-col gap-3 relative shadow-md transition-all ${
+                              isGoldMatch ? 'border-yellow-500/40 shadow-lg' : isBronzeMatch ? 'border-amber-600/40 shadow-lg' : 'border-[var(--slate-700)]'
+                            } ${
+                              isMatchResolved && !isGoldMatch && !isBronzeMatch ? 'border-[var(--accent)]/55 shadow-md shadow-[var(--accent)]/5' : ''
                             }`}
                           >
+                            {/* Match Header Label */}
+                            <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest pb-1 border-b border-[var(--slate-850,rgba(255,255,255,0.05))]">
+                              <span className={isGoldMatch ? 'text-yellow-500' : isBronzeMatch ? 'text-amber-500' : 'text-slate-400'}>
+                                {isGoldMatch ? '🥇 Gold Medal Match' : isBronzeMatch ? '🥉 Bronze Medal Match' : `Match ${match.matchIndex + 1}`}
+                              </span>
+                            </div>
+
                             {/* Connector Lines for Brackets */}
                             {/* Left incoming line (from previous round) */}
                             {rIdx > 0 && (
@@ -809,8 +870,10 @@ export default function TournamentPanel({
                                 )}
                               </>
                             ) : (
-                              /* Finals outgoing line to champion */
-                              <div className="absolute right-[-32px] top-1/2 w-[32px] h-[2px] bg-[var(--accent)]/50 pointer-events-none" />
+                              /* Finals outgoing line to champion - only for Gold match (matchIndex === 0) */
+                              isGoldMatch && (
+                                <div className="absolute right-[-32px] top-1/2 w-[32px] h-[2px] bg-yellow-500/40 pointer-events-none" />
+                              )
                             )}
 
                             <div className="space-y-2">
@@ -867,26 +930,63 @@ export default function TournamentPanel({
               })}
 
               {/* Champion Column */}
-              <div className="flex flex-col justify-center gap-2 min-w-[200px] text-center self-center h-full">
-                <Trophy className="w-8 h-8 text-[var(--accent)] mx-auto animate-bounce mb-1" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">CHAMPION</span>
+              <div className="flex flex-col justify-center gap-4 min-w-[210px] text-center self-center h-full">
+                <div className="space-y-1">
+                  <Trophy className="w-8 h-8 text-yellow-500 mx-auto animate-bounce mb-1" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">PODIUM STANDINGS</span>
+                </div>
                 
                 {/* Find the winner of final round */}
                 {(() => {
-                  const finalMatch = bracketMatches.find((m) => m.roundIndex === bracketRoundsCount - 1);
-                  const winner = finalMatch?.winnerId
+                  const finalMatch = bracketMatches.find((m) => m.roundIndex === bracketRoundsCount - 1 && m.matchIndex === 0);
+                  const bronzeMatch = bracketMatches.find((m) => m.roundIndex === bracketRoundsCount - 1 && m.matchIndex === 1);
+                  
+                  const goldWinner = finalMatch?.winnerId
                     ? finalMatch.winnerId === finalMatch.entity1?.id
                       ? finalMatch.entity1
                       : finalMatch.entity2
                     : null;
+
+                  const silverWinner = finalMatch?.winnerId
+                    ? finalMatch.winnerId === finalMatch.entity1?.id
+                      ? finalMatch.entity2
+                      : finalMatch.entity1
+                    : null;
+
+                  const bronzeWinner = bronzeMatch?.winnerId
+                    ? bronzeMatch.winnerId === bronzeMatch.entity1?.id
+                      ? bronzeMatch.entity1
+                      : bronzeMatch.entity2
+                    : null;
                   
                   return (
-                    <div className="bg-[var(--slate-900)] p-4 rounded-lg border-2 border-[var(--accent)]/40 shadow-xl max-w-[180px] mx-auto relative">
-                      {/* Incoming connector from Finals */}
-                      <div className="absolute left-[-32px] top-1/2 w-[32px] h-[2px] bg-[var(--accent)]/50 pointer-events-none" />
-                      <span className="text-xs font-black text-[var(--accent)] truncate block" title={winner?.name || 'TBD'}>
-                        {winner?.name || 'Undecided'}
-                      </span>
+                    <div className="space-y-3">
+                      <div className="bg-[var(--slate-900)] p-4 rounded-lg border-2 border-yellow-500/50 shadow-xl max-w-[180px] mx-auto relative">
+                        {/* Incoming connector from Finals */}
+                        <div className="absolute left-[-32px] top-1/2 w-[32px] h-[2px] bg-yellow-500/40 pointer-events-none" />
+                        <span className="text-[9px] font-black text-yellow-500 tracking-widest uppercase block mb-1">🥇 Gold Winner</span>
+                        <span className="text-xs font-black text-white truncate block" title={goldWinner?.name || 'TBD'}>
+                          {goldWinner?.name || 'Undecided'}
+                        </span>
+                      </div>
+
+                      {silverWinner && (
+                        <div className="bg-[var(--slate-900)]/90 p-3 rounded-lg border border-slate-400/35 shadow-md max-w-[170px] mx-auto">
+                          <span className="text-[9px] font-black text-slate-400 tracking-widest uppercase block mb-1">🥈 Silver Medal</span>
+                          <span className="text-xs font-black text-slate-200 truncate block" title={silverWinner.name}>
+                            {silverWinner.name}
+                          </span>
+                        </div>
+                      )}
+
+                      {bronzeWinner && (
+                        <div className="bg-[var(--slate-900)]/90 p-3 rounded-lg border border-amber-600/35 shadow-md max-w-[170px] mx-auto">
+                          <span className="text-[9px] font-black text-amber-500 tracking-widest uppercase block mb-1">🥉 Bronze Medal</span>
+                          <span className="text-xs font-black text-slate-200 truncate block" title={bronzeWinner.name}>
+                            {bronzeWinner.name}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
