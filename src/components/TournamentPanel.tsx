@@ -71,6 +71,18 @@ export default function TournamentPanel({
     return saved ? parseInt(saved, 10) : 1;
   });
 
+  // Keep track of brackets for ALL categories
+  const [allBrackets, setAllBrackets] = useState<Record<string, { matches: TournamentMatch[], size: number, roundsCount: number, mode: 'single' | 'team' }>>(() => {
+    try {
+      const saved = localStorage.getItem('archery_tournament_all_brackets');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [showAdvanceHelp, setShowAdvanceHelp] = useState(false);
+
   // Sync state changes to localStorage
   useEffect(() => {
     localStorage.setItem('archery_tournament_viewState', viewState);
@@ -103,6 +115,10 @@ export default function TournamentPanel({
   useEffect(() => {
     localStorage.setItem('archery_tournament_bracketRoundsCount', String(bracketRoundsCount));
   }, [bracketRoundsCount]);
+
+  useEffect(() => {
+    localStorage.setItem('archery_tournament_all_brackets', JSON.stringify(allBrackets));
+  }, [allBrackets]);
 
   // --- MANUAL PARTICIPANT ADD ---
   const handleAddPart = async () => {
@@ -333,6 +349,15 @@ export default function TournamentPanel({
     advanceWinners(allMatches, rounds);
 
     setBracketMatches(allMatches);
+    setAllBrackets(prev => ({
+      ...prev,
+      [cat]: {
+        matches: allMatches,
+        size: bSize,
+        roundsCount: rounds,
+        mode: tournamentMode
+      }
+    }));
     setViewState('bracket');
   };
 
@@ -431,6 +456,15 @@ export default function TournamentPanel({
     // Re-apply advances
     advanceWinners(nextMatches, bracketRoundsCount);
     setBracketMatches(nextMatches);
+    setAllBrackets(prev => ({
+      ...prev,
+      [selectedCategory]: {
+        matches: nextMatches,
+        size: bracketSize,
+        roundsCount: bracketRoundsCount,
+        mode: tournamentMode
+      }
+    }));
   };
 
   const clearDownstreamSlots = (matches: TournamentMatch[], round: number, matchIdx: number) => {
@@ -576,6 +610,34 @@ export default function TournamentPanel({
     return `Round ${rIdx + 1}`;
   };
 
+  const handleSwitchDivisionBracket = (category: string) => {
+    // 1. Save current bracket state to allBrackets before switching
+    let updatedAllBrackets = { ...allBrackets };
+    if (bracketMatches.length > 0) {
+      updatedAllBrackets[selectedCategory] = {
+        matches: bracketMatches,
+        size: bracketSize,
+        roundsCount: bracketRoundsCount,
+        mode: tournamentMode
+      };
+      setAllBrackets(updatedAllBrackets);
+    }
+
+    // 2. Load selected category
+    setSelectedCategory(category);
+    const saved = updatedAllBrackets[category];
+    if (saved) {
+      setBracketMatches(saved.matches);
+      setBracketSize(saved.size);
+      setBracketRoundsCount(saved.roundsCount);
+      setTournamentMode(saved.mode);
+    } else {
+      setBracketMatches([]);
+      setBracketSize(2);
+      setBracketRoundsCount(1);
+    }
+  };
+
   return (
     <div className="space-y-6">
       
@@ -587,6 +649,48 @@ export default function TournamentPanel({
             <h3 className="text-3xl font-black mb-2 text-white">Rankings & Eliminations</h3>
             <p className="opacity-60 text-sm">Build your tournament roster to seed custom single-elim, dynamic team formats, or round-robin schedules.</p>
           </div>
+
+          {/* Active Brackets / Leagues Resumption Center */}
+          {Object.keys(allBrackets).filter(cat => allBrackets[cat].matches && allBrackets[cat].matches.length > 0).length > 0 && (
+            <div className="glass p-5 rounded-xl border border-yellow-500/20 bg-yellow-500/5 shadow-xl space-y-3">
+              <div className="flex items-center gap-2 text-yellow-400">
+                <Trophy className="w-5 h-5" />
+                <h4 className="font-extrabold text-sm uppercase tracking-wider text-white">Brackets In Progress</h4>
+              </div>
+              <p className="text-xs text-slate-400 font-semibold">
+                You have active tournament brackets saved. Click any to resume instantly:
+              </p>
+              <div className="flex flex-wrap gap-3 pt-1">
+                {Object.keys(allBrackets).map(cat => {
+                  const bracket = allBrackets[cat];
+                  if (!bracket.matches || bracket.matches.length === 0) return null;
+                  const totalMatches = bracket.matches.filter(m => m.entity1 && m.entity2).length;
+                  const resolvedMatches = bracket.matches.filter(m => m.winnerId).length;
+                  const progressPct = totalMatches > 0 ? Math.round((resolvedMatches / totalMatches) * 100) : 0;
+                  
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        setSelectedCategory(cat);
+                        setBracketMatches(bracket.matches);
+                        setBracketSize(bracket.size);
+                        setBracketRoundsCount(bracket.roundsCount);
+                        setTournamentMode(bracket.mode);
+                        setViewState('bracket');
+                      }}
+                      className="px-4 py-2.5 bg-[var(--slate-800)] hover:bg-[var(--slate-700)] border border-[var(--slate-700)] hover:border-[var(--accent)]/50 rounded-lg text-left transition-all cursor-pointer min-w-[200px]"
+                    >
+                      <div className="text-xs font-black text-white uppercase tracking-wider">{cat} Division</div>
+                      <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                        {bracket.mode === 'single' ? 'Singles Elim' : 'Team Pairs'} • {progressPct}% Done ({resolvedMatches}/{totalMatches})
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
@@ -871,7 +975,7 @@ export default function TournamentPanel({
       {viewState === 'bracket' && (
         <div className="space-y-6 animate-in fade-in duration-300">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 glass p-3 rounded-lg shadow-xl border border-[var(--slate-700)]">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={() => setViewState('roster')}
                 className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white uppercase tracking-wider cursor-pointer"
@@ -881,42 +985,112 @@ export default function TournamentPanel({
               <span className="text-slate-600">|</span>
               <button
                 onClick={async () => {
-                  const confirmed = await confirm('Are you sure you want to discard this tournament bracket and start over?');
+                  const confirmed = await confirm(`Are you sure you want to discard the ${selectedCategory} bracket and start over?`);
                   if (confirmed) {
                     setBracketMatches([]);
                     setBracketSize(2);
                     setBracketRoundsCount(1);
-                    setViewState('roster');
+                    setAllBrackets(prev => {
+                      const next = { ...prev };
+                      delete next[selectedCategory];
+                      return next;
+                    });
                     localStorage.removeItem('archery_tournament_bracketMatches');
-                    localStorage.removeItem('archery_tournament_viewState');
                   }
                 }}
                 className="text-xs font-bold text-red-400 hover:text-red-300 uppercase tracking-wider cursor-pointer"
               >
                 Reset Bracket
               </button>
+              <span className="text-slate-600">|</span>
+              <button
+                onClick={() => setShowAdvanceHelp(true)}
+                className="flex items-center gap-1.5 text-xs font-bold text-blue-400 hover:text-blue-300 uppercase tracking-wider cursor-pointer"
+              >
+                <HelpCircle className="w-4 h-4" /> Instructions
+              </button>
             </div>
-            <div className="text-center sm:text-right">
-              <span className="text-xs font-bold text-[var(--accent)] uppercase tracking-wider">
-                {tournamentMode === 'single' ? 'Singles Elimination' : 'Balanced Team Pairs'} • {selectedCategory}
-              </span>
+            
+            <div className="flex items-center gap-2.5">
+              <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Division Bracket:</span>
+              <select
+                value={selectedCategory}
+                onChange={(e) => handleSwitchDivisionBracket(e.target.value)}
+                className="bg-[var(--slate-900)] border border-[var(--slate-700)] rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[var(--accent)] font-bold cursor-pointer"
+              >
+                {categories.map((cat) => {
+                  const hasActiveBracket = allBrackets[cat] && allBrackets[cat].matches && allBrackets[cat].matches.length > 0;
+                  return (
+                    <option key={cat} value={cat}>
+                      {cat} {hasActiveBracket ? '🟢 (Active)' : '⚪ (Not Seeded)'}
+                    </option>
+                  );
+                })}
+              </select>
             </div>
           </div>
 
-          {/* Interactive Advancing Help Card */}
-          <div className="glass p-4 rounded-lg border border-blue-500/20 bg-blue-500/5 text-xs text-blue-300 flex items-start gap-3 max-w-4xl mx-auto">
-            <HelpCircle className="w-4 h-4 flex-shrink-0 text-blue-400 mt-0.5" />
-            <div className="space-y-1 font-semibold">
-              <p className="font-bold text-white">How to Advance Competitors:</p>
-              <p className="leading-relaxed">
-                Enter scores in the match cards below. The competitor with the higher score is automatically promoted to the next slot in real-time. Matches seeded with "BYE" are resolved immediately.
+          {/* Instruction Pop-up Modal */}
+          {showAdvanceHelp && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-[var(--slate-900)] border border-[var(--slate-700)] rounded-xl p-6 max-w-md w-full shadow-2xl relative animate-in zoom-in-95 duration-200">
+                <button 
+                  onClick={() => setShowAdvanceHelp(false)}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-white text-sm font-black"
+                >
+                  ✕
+                </button>
+                <div className="flex items-start gap-3">
+                  <HelpCircle className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-black text-white uppercase tracking-wider mb-2">How to Advance Competitors</h4>
+                    <p className="text-xs text-slate-300 leading-relaxed font-semibold">
+                      Enter scores in the match cards below. The competitor with the higher score is automatically promoted to the next slot in real-time. Matches seeded with "BYE" are resolved immediately.
+                    </p>
+                    <button
+                      onClick={() => setShowAdvanceHelp(false)}
+                      className="mt-5 w-full bg-[var(--accent)] hover:brightness-110 text-white font-extrabold text-xs py-2 rounded-lg transition-all"
+                    >
+                      Got it, thanks!
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {bracketMatches.length === 0 ? (
+            <div className="max-w-md mx-auto glass p-8 rounded-2xl border border-[var(--slate-700)] text-center space-y-4 py-12 animate-in fade-in zoom-in-95 duration-300">
+              <Trophy className="w-12 h-12 text-slate-500 mx-auto" />
+              <h4 className="font-bold text-white text-base">No Active Bracket for {selectedCategory}</h4>
+              <p className="text-xs text-slate-400 font-semibold leading-relaxed">
+                There is no tournament bracket seeded for the <span className="text-[var(--accent)]">{selectedCategory}</span> division yet. You can seed one right now.
               </p>
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  onClick={() => {
+                    setTournamentMode('single');
+                    handleBuildBracketForCategory(selectedCategory);
+                  }}
+                  className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all"
+                >
+                  Seed Singles Bracket
+                </button>
+                <button
+                  onClick={() => {
+                    setTournamentMode('team');
+                    handleBuildBracketForCategory(selectedCategory);
+                  }}
+                  className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all"
+                >
+                  Draft Balanced Teams Bracket
+                </button>
+              </div>
             </div>
-          </div>
-
-          {/* Bracket Interactive Tree */}
-          <div className="glass p-6 rounded-xl border border-[var(--slate-700)] shadow-2xl overflow-x-auto max-w-full">
-            <div className="flex gap-16 min-w-max pb-4">
+          ) : (
+            /* Bracket Interactive Tree */
+            <div className="glass p-6 rounded-xl border border-[var(--slate-700)] shadow-2xl overflow-x-auto max-w-full">
+              <div className="flex gap-16 min-w-max pb-4">
               
               {Array.from({ length: bracketRoundsCount }).map((_, rIdx) => {
                 const roundMatches = bracketMatches.filter((m) => m.roundIndex === rIdx);
@@ -1100,8 +1274,9 @@ export default function TournamentPanel({
 
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+    )}
 
       {/* 4. ROUND ROBIN VIEW */}
       {viewState === 'roundRobin' && (

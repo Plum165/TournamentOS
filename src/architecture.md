@@ -50,7 +50,12 @@ A multi-sport tournament and training management OS, currently supporting high-f
    - Semifinal winners advance to the **🥇 Gold Medal Match** (Match 0).
    - Semifinal losers automatically route into the **🥉 Bronze Medal Match** (Match 1).
 4. **Interactive Advancing**: Updating scores immediately recalculates winners, promotes them, or clears downstream branches if scores are reset.
-5. **Standings Podium**: Displays the Gold, Silver, and Bronze medalists on the bracket stage once finalized.
+5. **Multi-Division Persistent Storage**:
+   - State persists brackets independently for each division inside an `allBrackets` state model, bound to `localStorage` synchronization.
+   - Users can switch divisions seamlessly in the bracket subview via a modern, interactive dropdown selector without losing progress.
+   - An "Active Brackets in Progress" resumption widget in the main Roster view lets users jump back into any division's live bracket.
+6. **Instructions Modal**: A sleek help dialog detailing competitor progression can be toggled on-demand via an overlay pop-up, maximizing visual screen space during scoring.
+7. **Standings Podium**: Displays the Gold, Silver, and Bronze medalists on the bracket stage once finalized.
 
 ### B. Physical Target Plotting (Archery)
 - **Ring Resolution**: Coordinates clicked on the SVG target face are translated to score values (e.g., Inner 10, Outer 9, 8, etc.) using geometric radial bounds defined in `targetDefinitions.ts`.
