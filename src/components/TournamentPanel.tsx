@@ -445,6 +445,22 @@ export default function TournamentPanel({
         }
       });
     }
+
+    // Auto-resolve Bronze Medal Match if either participant is an automatic BYE
+    if (rounds >= 2) {
+      const bronzeMatch = matches.find((m) => m.roundIndex === rounds - 1 && m.matchIndex === 1);
+      if (bronzeMatch && bronzeMatch.entity1 && bronzeMatch.entity2) {
+        if (bronzeMatch.entity1.id.startsWith('bye')) {
+          bronzeMatch.winnerId = bronzeMatch.entity2.id;
+          bronzeMatch.score1 = 0;
+          bronzeMatch.score2 = 1;
+        } else if (bronzeMatch.entity2.id.startsWith('bye')) {
+          bronzeMatch.winnerId = bronzeMatch.entity1.id;
+          bronzeMatch.score1 = 1;
+          bronzeMatch.score2 = 0;
+        }
+      }
+    }
   };
 
   const updateMatchScore = (matchId: string, score1Str: string, score2Str: string) => {
