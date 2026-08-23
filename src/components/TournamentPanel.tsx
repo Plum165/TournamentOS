@@ -187,6 +187,29 @@ export default function TournamentPanel({
     e.target.value = ''; // Reset input
   };
 
+  const handleDownloadTemplate = () => {
+    const headers = ['Name', 'Points', 'Category', 'Team'];
+    const rows = [
+      ['John Doe', '300', 'Recurve', 'Robin Hoods'],
+      ['Jane Smith', '280', 'Compound', 'Golden Arrows'],
+      ['Bob Johnson', '150', 'Barebow', 'Barebow Club']
+    ];
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'archer_roster_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Get active distinct categories
   const categories = ['Everyone', ...new Set(participants.map((p) => p.category))].sort();
 
@@ -773,12 +796,20 @@ export default function TournamentPanel({
                 onChange={handleCSVUpload}
                 className="hidden"
               />
-              <label
-                htmlFor="roster-csv-input"
-                className="px-5 py-2 bg-[var(--slate-800)] hover:bg-[var(--slate-700)] text-white border border-[var(--slate-700)] rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer transition-all shadow-sm"
-              >
-                Select CSV File
-              </label>
+              <div className="flex flex-wrap gap-3 justify-center">
+                <label
+                  htmlFor="roster-csv-input"
+                  className="px-5 py-2.5 bg-[var(--slate-800)] hover:bg-[var(--slate-700)] text-white border border-[var(--slate-700)] rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer transition-all shadow-sm"
+                >
+                  Select CSV File
+                </label>
+                <button
+                  onClick={handleDownloadTemplate}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white border border-blue-500 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer transition-all shadow-sm"
+                >
+                  Download CSV Template
+                </button>
+              </div>
             </div>
           </div>
 
