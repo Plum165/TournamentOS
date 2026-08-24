@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArcherySession, Shot, End, TargetType } from '../types';
 import { TARGET_DEFINITIONS } from '../targetDefinitions';
 import { useDialog } from './DialogProvider';
+import AnalyticsPanel from './AnalyticsPanel';
 import { 
   Clock, Calendar, Download, Trash2, ChevronDown, ChevronUp, 
   Target, Award, FileSpreadsheet, Eye, HelpCircle, ArrowLeftRight
@@ -50,24 +51,38 @@ export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
 
   // Helper to convert data to CSV and trigger download (Excel compatible)
   const exportSessionToCSV = (session: ArcherySession) => {
-    // Columns: Date, Archer, Format, Target, End, Arrow, Score, Value, Distance
-    const headers = ['Date', 'Archer Name', 'Session Format', 'Target Type', 'End Number', 'Arrow Number', 'Arrow Score', 'Numerical Value', 'Distance (m)'];
+    const arrowsPerEnd = session.arrowsPerEnd || 3;
+    const arrowHeaders = Array.from({ length: arrowsPerEnd }, (_, i) => `Arrow ${i + 1}`);
+
+    const headers = [
+      'Date', 
+      'Archer Name', 
+      'Session Format', 
+      'Target Type', 
+      'End Number', 
+      ...arrowHeaders, 
+      'End Total', 
+      'Distance (m)'
+    ];
     const rows: string[][] = [];
 
     session.ends.forEach((end) => {
-      end.shots.forEach((shot, index) => {
-        rows.push([
-          session.date,
-          session.archerName,
-          session.format,
-          session.targetType || '122cm',
-          end.endNumber.toString(),
-          (index + 1).toString(),
-          shot.score,
-          shot.value.toString(),
-          end.distance ? `${end.distance}m` : 'N/A'
-        ]);
+      const rowShots = Array.from({ length: arrowsPerEnd }, (_, i) => {
+        const shot = end.shots[i];
+        return shot ? shot.score : '';
       });
+      const endTotal = end.shots.reduce((sum, s) => sum + s.value, 0);
+
+      rows.push([
+        session.date,
+        session.archerName,
+        session.format,
+        session.targetType || '122cm',
+        end.endNumber.toString(),
+        ...rowShots,
+        endTotal.toString(),
+        end.distance ? `${end.distance}m` : 'N/A'
+      ]);
     });
 
     const csvContent = [
@@ -205,8 +220,15 @@ export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
     }
   };
 
+  const [activeSubTab, setActiveSubTab] = useState<'scorecard' | 'analytics'>('scorecard');
+
   const toggleExpand = (id: string) => {
-    setExpandedSessionId(expandedSessionId === id ? null : id);
+    if (expandedSessionId === id) {
+      setExpandedSessionId(null);
+    } else {
+      setExpandedSessionId(id);
+      setActiveSubTab('scorecard');
+    }
   };
 
   return (
@@ -327,203 +349,235 @@ export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
                 {isExpanded && (
                   <div className="border-t border-[var(--slate-700)] bg-black/20 p-5 space-y-6 animate-in slide-in-from-top-2 duration-300">
                     
-                    {/* Action buttons inside detail */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-[var(--slate-800)]/80 p-3.5 rounded-xl border border-white/5">
-                      <span className="text-xs font-bold text-slate-300">Detailed scorecard and arrow heatmap breakdown:</span>
-                      <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                        <button
-                          onClick={() => exportSessionToCSV(session)}
-                          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-900 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                        >
-                          <Download className="w-4 h-4" />
-                          <span>Export Excel (CSV)</span>
-                        </button>
-                        <button
-                          onClick={() => exportSessionPlotPNG(session, def.name)}
-                          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-900 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                        >
-                          <Target className="w-4 h-4" />
-                          <span>Export Target Plot (PNG)</span>
-                        </button>
-                        <button
-                          onClick={() => deleteSession(session.id, session.archerName)}
-                          className="inline-flex items-center justify-center p-1.5 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 rounded-lg transition-all cursor-pointer"
-                          title="Delete Session Log"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                    {/* Inner Sub-Tabs Selection */}
+                    <div className="flex border-b border-[var(--slate-700)] pb-px gap-6">
+                      <button
+                        onClick={() => setActiveSubTab('scorecard')}
+                        className={`pb-2.5 text-xs font-black uppercase tracking-wider transition-all relative cursor-pointer ${
+                          activeSubTab === 'scorecard'
+                            ? 'text-[var(--accent)] border-b-2 border-b-[var(--accent)] font-extrabold'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        Scorecard & Target Plot
+                      </button>
+                      <button
+                        onClick={() => setActiveSubTab('analytics')}
+                        className={`pb-2.5 text-xs font-black uppercase tracking-wider transition-all relative cursor-pointer ${
+                          activeSubTab === 'analytics'
+                            ? 'text-[var(--accent)] border-b-2 border-b-[var(--accent)] font-extrabold'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        Shot Analytics & Coaching Advice
+                      </button>
                     </div>
 
-                    {/* Left & Right layout: Visual coordinate plot + Ring counts */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                      
-                      {/* SVG coordinate scatter plot on left */}
-                      <div className="lg:col-span-5 bg-[var(--slate-900)] border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center relative overflow-hidden">
-                        <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block self-start">
-                          Shot Coordinate Scatter Heatmap
-                        </h5>
-                        
-                        <div className="relative w-full max-w-[260px] aspect-square">
-                          <svg
-                            id={`svg-history-${session.id}`}
-                            viewBox="-220 -220 440 440"
-                            className="w-full h-full overflow-visible"
-                          >
-                            {/* Render Rings */}
-                            {sortedRings.map((ring) => (
-                              <circle
-                                key={ring.value}
-                                cx="0"
-                                cy="0"
-                                r={ring.radius}
-                                fill={ring.color}
-                                stroke="#000"
-                                strokeWidth={ring.value === 'X' ? 0.6 : 1.2}
-                              />
-                            ))}
-
-                            {/* Ring Scoring Labels (1 to 10) */}
-                            {def.rings.map((ring, idx) => {
-                              if (ring.value === 'X') return null; // keep center clean
-                              const prevRadius = idx > 0 ? def.rings[idx - 1].radius : 0;
-                              const mid = (prevRadius + ring.radius) / 2;
-                              
-                              const positions = [
-                                { x: -mid, y: 0 },
-                                { x: mid, y: 0 },
-                                { x: 0, y: -mid },
-                                { x: 0, y: mid }
-                              ];
-                              
-                              return (
-                                <g key={`hist-labels-${ring.value}`} className="opacity-70">
-                                  {positions.map((pos, pIdx) => (
-                                    <text
-                                      key={pIdx}
-                                      x={pos.x}
-                                      y={pos.y}
-                                      fill={ring.textColor || '#1E293B'}
-                                      fontSize="6"
-                                      fontWeight="900"
-                                      textAnchor="middle"
-                                      dominantBaseline="central"
-                                      className="select-none pointer-events-none font-sans"
-                                    >
-                                      {ring.value}
-                                    </text>
-                                  ))}
-                                </g>
-                              );
-                            })}
-
-                            {/* Center crosshair */}
-                            <line x1="-210" y1="0" x2="210" y2="0" stroke="rgba(0,0,0,0.15)" strokeWidth="0.8" />
-                            <line x1="0" y1="-210" x2="0" y2="210" stroke="rgba(0,0,0,0.15)" strokeWidth="0.8" />
-
-                            {/* Render all arrow scatter points */}
-                            {allShots.map((shot, shotIdx) => (
-                              <g key={`scatter-${session.id}-${shot.id}`} className="transition-all duration-300">
-                                <circle
-                                  cx={shot.x}
-                                  cy={shot.y}
-                                  r="7"
-                                  fill="#10B981"
-                                  stroke="#FFFFFF"
-                                  strokeWidth="1.5"
-                                  className="shadow-sm"
-                                />
-                                <circle cx={shot.x} cy={shot.y} r="1" fill="#fff" />
-                              </g>
-                            ))}
-                          </svg>
-                        </div>
-                        <div className="flex flex-col items-center mt-2.5">
-                          <span className="text-[9px] font-mono text-slate-500">
-                            Plotted {allShots.length} shots recorded during session.
-                          </span>
-                          <button
-                            onClick={() => exportSessionPlotPNG(session, def.name)}
-                            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest border border-white/5 transition-all cursor-pointer"
-                          >
-                            <Download className="w-3 h-3 text-[var(--accent)]" />
-                            <span>Download Image</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Stats and stats counts on right */}
-                      <div className="lg:col-span-7 space-y-4">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          <div className="bg-white/5 border border-white/5 rounded-xl p-3 text-center">
-                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Average Arrow</span>
-                            <span className="text-xl font-black text-blue-400 mt-0.5 block">{avgArrow}</span>
-                          </div>
-                          <div className="bg-white/5 border border-white/5 rounded-xl p-3 text-center">
-                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Gold Hits (9+)</span>
-                            <span className="text-xl font-black text-yellow-400 mt-0.5 block">
-                              {goldRings} <span className="text-xs font-normal text-slate-500">({allShots.length > 0 ? Math.round((goldRings/allShots.length)*100) : 0}%)</span>
-                            </span>
-                          </div>
-                          <div className="bg-white/5 border border-white/5 rounded-xl p-3 text-center">
-                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Red Hits (7-8)</span>
-                            <span className="text-xl font-black text-red-400 mt-0.5 block">
-                              {redRings} <span className="text-xs font-normal text-slate-500">({allShots.length > 0 ? Math.round((redRings/allShots.length)*100) : 0}%)</span>
-                            </span>
-                          </div>
-                          <div className="bg-white/5 border border-white/5 rounded-xl p-3 text-center">
-                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Miss Rate</span>
-                            <span className="text-xl font-black text-slate-400 mt-0.5 block">
-                              {missRings} <span className="text-xs font-normal text-slate-500">({allShots.length > 0 ? Math.round((missRings/allShots.length)*100) : 0}%)</span>
-                            </span>
+                    {activeSubTab === 'scorecard' ? (
+                      <>
+                        {/* Action buttons inside detail */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-[var(--slate-800)]/80 p-3.5 rounded-xl border border-white/5">
+                          <span className="text-xs font-bold text-slate-300">Detailed scorecard and arrow heatmap breakdown:</span>
+                          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <button
+                              onClick={() => exportSessionToCSV(session)}
+                              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-900 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                            >
+                              <Download className="w-4 h-4" />
+                              <span>Export Excel (CSV)</span>
+                            </button>
+                            <button
+                              onClick={() => exportSessionPlotPNG(session, def.name)}
+                              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-900 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                            >
+                              <Target className="w-4 h-4" />
+                              <span>Export Target Plot (PNG)</span>
+                            </button>
+                            <button
+                              onClick={() => deleteSession(session.id, session.archerName)}
+                              className="inline-flex items-center justify-center p-1.5 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 rounded-lg transition-all cursor-pointer"
+                              title="Delete Session Log"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
 
-                        {/* Detailed Ends Table */}
-                        <div className="bg-[var(--slate-900)] border border-white/5 rounded-xl overflow-hidden shadow">
-                          <div className="p-3 bg-white/5 border-b border-white/5 flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">Arrow-by-Arrow Log Sheet</span>
-                            <span className="text-[10px] font-bold text-slate-500">{session.format.toUpperCase()}</span>
-                          </div>
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-center text-xs">
-                              <thead className="bg-black/40 text-white/40 uppercase text-[9px] tracking-wider font-bold">
-                                <tr>
-                                  <th className="py-2.5 px-3">End</th>
-                                  {Array.from({ length: session.arrowsPerEnd }).map((_, i) => (
-                                    <th key={i}>A{i + 1}</th>
-                                  ))}
-                                  <th className="text-[var(--accent)]">End Score</th>
-                                  <th className="text-blue-400">Running</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-white/5 font-bold text-slate-300">
-                                {session.ends.map((end, idx) => {
-                                  const endSum = end.shots.reduce((s, shot) => s + shot.value, 0);
-                                  const runningSum = session.ends
-                                    .slice(0, idx + 1)
-                                    .reduce((sum, e) => sum + e.shots.reduce((ss, ar) => ss + ar.value, 0), 0);
+                        {/* Left & Right layout: Visual coordinate plot + Ring counts */}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                          
+                          {/* SVG coordinate scatter plot on left */}
+                          <div className="lg:col-span-5 bg-[var(--slate-900)] border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center relative overflow-hidden">
+                            <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block self-start">
+                              Shot Coordinate Scatter Heatmap
+                            </h5>
+                            
+                            <div className="relative w-full max-w-[260px] aspect-square">
+                              <svg
+                                id={`svg-history-${session.id}`}
+                                viewBox="-220 -220 440 440"
+                                className="w-full h-full overflow-visible"
+                              >
+                                {/* Render Rings */}
+                                {sortedRings.map((ring) => (
+                                  <circle
+                                    key={ring.value}
+                                    cx="0"
+                                    cy="0"
+                                    r={ring.radius}
+                                    fill={ring.color}
+                                    stroke="#000"
+                                    strokeWidth={ring.value === 'X' ? 0.6 : 1.2}
+                                  />
+                                ))}
 
+                                {/* Ring Scoring Labels (1 to 10) */}
+                                {def.rings.map((ring, idx) => {
+                                  if (ring.value === 'X') return null; // keep center clean
+                                  const prevRadius = idx > 0 ? def.rings[idx - 1].radius : 0;
+                                  const mid = (prevRadius + ring.radius) / 2;
+                                  
+                                  const positions = [
+                                    { x: -mid, y: 0 },
+                                    { x: mid, y: 0 },
+                                    { x: 0, y: -mid },
+                                    { x: 0, y: mid }
+                                  ];
+                                  
                                   return (
-                                    <tr key={end.id} className="hover:bg-white/5 transition-colors">
-                                      <td className="py-2 px-3 font-black text-white/40">{end.endNumber}</td>
-                                      {Array.from({ length: session.arrowsPerEnd }).map((_, i) => {
-                                        const shot = end.shots[i];
-                                        return <td key={i}>{shot ? shot.score : '-'}</td>;
-                                      })}
-                                      <td className="font-black text-[var(--accent)]">{endSum}</td>
-                                      <td className="font-black text-blue-400">{runningSum}</td>
-                                    </tr>
+                                    <g key={`hist-labels-${ring.value}`} className="opacity-70">
+                                      {positions.map((pos, pIdx) => (
+                                        <text
+                                          key={pIdx}
+                                          x={pos.x}
+                                          y={pos.y}
+                                          fill={ring.textColor || '#1E293B'}
+                                          fontSize="6"
+                                          fontWeight="900"
+                                          textAnchor="middle"
+                                          dominantBaseline="central"
+                                          className="select-none pointer-events-none font-sans"
+                                        >
+                                          {ring.value}
+                                        </text>
+                                      ))}
+                                    </g>
                                   );
                                 })}
-                              </tbody>
-                            </table>
+
+                                {/* Center crosshair */}
+                                <line x1="-210" y1="0" x2="210" y2="0" stroke="rgba(0,0,0,0.15)" strokeWidth="0.8" />
+                                <line x1="0" y1="-210" x2="0" y2="210" stroke="rgba(0,0,0,0.15)" strokeWidth="0.8" />
+
+                                {/* Render all arrow scatter points */}
+                                {allShots.map((shot, shotIdx) => (
+                                  <g key={`scatter-${session.id}-${shot.id}`} className="transition-all duration-300">
+                                    <circle
+                                      cx={shot.x}
+                                      cy={shot.y}
+                                      r="7"
+                                      fill="#10B981"
+                                      stroke="#FFFFFF"
+                                      strokeWidth="1.5"
+                                      className="shadow-sm"
+                                    />
+                                    <circle cx={shot.x} cy={shot.y} r="1" fill="#fff" />
+                                  </g>
+                                ))}
+                              </svg>
+                            </div>
+                            <div className="flex flex-col items-center mt-2.5">
+                              <span className="text-[9px] font-mono text-slate-500">
+                                Plotted {allShots.length} shots recorded during session.
+                              </span>
+                              <button
+                                onClick={() => exportSessionPlotPNG(session, def.name)}
+                                className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest border border-white/5 transition-all cursor-pointer"
+                              >
+                                <Download className="w-3 h-3 text-[var(--accent)]" />
+                                <span>Download Image</span>
+                              </button>
+                            </div>
                           </div>
+
+                          {/* Stats and stats counts on right */}
+                          <div className="lg:col-span-7 space-y-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                              <div className="bg-white/5 border border-white/5 rounded-xl p-3 text-center">
+                                <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Average Arrow</span>
+                                <span className="text-xl font-black text-blue-400 mt-0.5 block">{avgArrow}</span>
+                              </div>
+                              <div className="bg-white/5 border border-white/5 rounded-xl p-3 text-center">
+                                <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Gold Hits (9+)</span>
+                                <span className="text-xl font-black text-yellow-400 mt-0.5 block">
+                                  {goldRings} <span className="text-xs font-normal text-slate-500">({allShots.length > 0 ? Math.round((goldRings/allShots.length)*100) : 0}%)</span>
+                                </span>
+                              </div>
+                              <div className="bg-white/5 border border-white/5 rounded-xl p-3 text-center">
+                                <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Red Hits (7-8)</span>
+                                <span className="text-xl font-black text-red-400 mt-0.5 block">
+                                  {redRings} <span className="text-xs font-normal text-slate-500">({allShots.length > 0 ? Math.round((redRings/allShots.length)*100) : 0}%)</span>
+                                </span>
+                              </div>
+                              <div className="bg-white/5 border border-white/5 rounded-xl p-3 text-center">
+                                <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Miss Rate</span>
+                                <span className="text-xl font-black text-slate-400 mt-0.5 block">
+                                  {missRings} <span className="text-xs font-normal text-slate-500">({allShots.length > 0 ? Math.round((missRings/allShots.length)*100) : 0}%)</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Detailed Ends Table */}
+                            <div className="bg-[var(--slate-900)] border border-white/5 rounded-xl overflow-hidden shadow">
+                              <div className="p-3 bg-white/5 border-b border-white/5 flex items-center justify-between">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">Arrow-by-Arrow Log Sheet</span>
+                                <span className="text-[10px] font-bold text-slate-500">{session.format.toUpperCase()}</span>
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-center text-xs">
+                                  <thead className="bg-black/40 text-white/40 uppercase text-[9px] tracking-wider font-bold">
+                                    <tr>
+                                      <th className="py-2.5 px-3">End</th>
+                                      {Array.from({ length: session.arrowsPerEnd }).map((_, i) => (
+                                        <th key={i}>A{i + 1}</th>
+                                      ))}
+                                      <th className="text-[var(--accent)]">End Score</th>
+                                      <th className="text-blue-400">Running</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-white/5 font-bold text-slate-300">
+                                    {session.ends.map((end, idx) => {
+                                      const endSum = end.shots.reduce((s, shot) => s + shot.value, 0);
+                                      const runningSum = session.ends
+                                        .slice(0, idx + 1)
+                                        .reduce((sum, e) => sum + e.shots.reduce((ss, ar) => ss + ar.value, 0), 0);
+
+                                      return (
+                                        <tr key={end.id} className="hover:bg-white/5 transition-colors">
+                                          <td className="py-2 px-3 font-black text-white/40">{end.endNumber}</td>
+                                          {Array.from({ length: session.arrowsPerEnd }).map((_, i) => {
+                                            const shot = end.shots[i];
+                                            return <td key={i}>{shot ? shot.score : '-'}</td>;
+                                          })}
+                                          <td className="font-black text-[var(--accent)]">{endSum}</td>
+                                          <td className="font-black text-blue-400">{runningSum}</td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+
+                          </div>
+
                         </div>
-
+                      </>
+                    ) : (
+                      <div className="p-2.5 rounded-2xl bg-[var(--slate-900)] border border-[var(--slate-700)]">
+                        <AnalyticsPanel session={session} targetType={targetFaceType} />
                       </div>
-
-                    </div>
+                    )}
 
                   </div>
                 )}
