@@ -488,6 +488,172 @@ export default function AnalyticsPanel({
                 })}
               </div>
             </div>
+
+            {/* Custom SVG Line Frequency Graph */}
+            <div className="space-y-3 pt-4">
+              <div>
+                <h4 className="font-bold text-sm text-white">Arrow Point Frequency Trend Line</h4>
+                <p className="text-xs text-slate-400 mt-0.5">Line tracking arrow counts progressively from Miss (M) up to Inner Ten (X)</p>
+              </div>
+              
+              <div className="w-full bg-[var(--slate-900)]/60 rounded-xl p-5 border border-[var(--slate-700)] shadow-inner">
+                {(() => {
+                  const orderedZones = ['M', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'];
+                  const maxCount = Math.max(...orderedZones.map(z => frequencies[z] || 0), 1);
+                  
+                  // Dimensions
+                  const width = 600;
+                  const height = 180;
+                  const paddingLeft = 40;
+                  const paddingRight = 40;
+                  const paddingTop = 25;
+                  const paddingBottom = 25;
+                  
+                  const chartWidth = width - paddingLeft - paddingRight;
+                  const chartHeight = height - paddingTop - paddingBottom;
+                  
+                  // Map points to coordinates
+                  const points = orderedZones.map((zone, i) => {
+                    const count = frequencies[zone] || 0;
+                    const x = paddingLeft + (i * (chartWidth / (orderedZones.length - 1)));
+                    const y = height - paddingBottom - (count / maxCount) * chartHeight;
+                    return { x, y, zone, count };
+                  });
+                  
+                  // Construct SVG path string
+                  let pathD = '';
+                  let areaD = `M ${points[0].x} ${height - paddingBottom} `;
+                  
+                  points.forEach((pt, i) => {
+                    if (i === 0) {
+                      pathD += `M ${pt.x} ${pt.y} `;
+                      areaD += `L ${pt.x} ${pt.y} `;
+                    } else {
+                      pathD += `L ${pt.x} ${pt.y} `;
+                      areaD += `L ${pt.x} ${pt.y} `;
+                    }
+                  });
+                  
+                  areaD += `L ${points[points.length - 1].x} ${height - paddingBottom} Z`;
+                  
+                  return (
+                    <div className="relative overflow-visible">
+                      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible select-none">
+                        <defs>
+                          <linearGradient id="freqAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#10B981" stopOpacity="0.25" />
+                            <stop offset="100%" stopColor="#10B981" stopOpacity="0.00" />
+                          </linearGradient>
+                        </defs>
+                        
+                        {/* Horizontal background grid lines */}
+                        {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+                          const y = paddingTop + ratio * chartHeight;
+                          const gridVal = Math.round((1 - ratio) * maxCount);
+                          return (
+                            <g key={ratio} className="opacity-30">
+                              <line
+                                x1={paddingLeft}
+                                y1={y}
+                                x2={width - paddingRight}
+                                y2={y}
+                                stroke="rgba(255,255,255,0.1)"
+                                strokeWidth="0.8"
+                                strokeDasharray="3 3"
+                              />
+                              <text
+                                x={paddingLeft - 12}
+                                y={y + 3}
+                                fill="#94A3B8"
+                                fontSize="9"
+                                fontWeight="bold"
+                                textAnchor="end"
+                              >
+                                {gridVal}
+                              </text>
+                            </g>
+                          );
+                        })}
+                        
+                        {/* Shaded Area fill under trend line */}
+                        <path d={areaD} fill="url(#freqAreaGrad)" />
+                        
+                        {/* Main Trend Line */}
+                        <path
+                          d={pathD}
+                          fill="none"
+                          stroke="#10B981"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        
+                        {/* Interactive Data point circles */}
+                        {points.map((pt, i) => (
+                          <g key={pt.zone} className="group cursor-pointer">
+                            {/* Larger transparent hover capture circle */}
+                            <circle
+                              cx={pt.x}
+                              cy={pt.y}
+                              r="12"
+                              fill="transparent"
+                            />
+                            {/* Aesthetic background indicator circle */}
+                            <circle
+                              cx={pt.x}
+                              cy={pt.y}
+                              r="5"
+                              fill="#0F172A"
+                              stroke="#10B981"
+                              strokeWidth="2.5"
+                              className="transition-all duration-200 group-hover:r-7"
+                            />
+                            {/* Point Score hover labels */}
+                            <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                              <rect
+                                x={pt.x - 18}
+                                y={pt.y - 28}
+                                width="36"
+                                height="18"
+                                rx="4"
+                                fill="#000000"
+                                stroke="#10B981"
+                                strokeWidth="1"
+                              />
+                              <text
+                                x={pt.x}
+                                y={pt.y - 16}
+                                fill="#FFFFFF"
+                                fontSize="9"
+                                fontWeight="black"
+                                textAnchor="middle"
+                              >
+                                {pt.count}
+                              </text>
+                            </g>
+                          </g>
+                        ))}
+                        
+                        {/* X-axis labels */}
+                        {points.map((pt) => (
+                          <text
+                            key={pt.zone}
+                            x={pt.x}
+                            y={height - 5}
+                            fill="#94A3B8"
+                            fontSize="9"
+                            fontWeight="black"
+                            textAnchor="middle"
+                          >
+                            {pt.zone}
+                          </text>
+                        ))}
+                      </svg>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
         )}
 
