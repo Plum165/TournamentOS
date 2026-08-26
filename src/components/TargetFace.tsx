@@ -37,10 +37,13 @@ export default function TargetFace({
   const [interactionMode, setInteractionMode] = useState<'place' | 'pan'>('place');
 
   // Zoom & Pan states
-  const [zoomLevel, setZoomLevel] = useState(1); // 1x to 4x
+  const [zoomLevel, setZoomLevel] = useState(1); // 1x to 5x
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
+  // Arrow marker size state (suggested slim size 5.5)
+  const [arrowRadius, setArrowRadius] = useState(5.5);
 
   // Dragging shot state
   const [draggedShotId, setDraggedShotId] = useState<string | null>(null);
@@ -236,7 +239,7 @@ export default function TargetFace({
   };
 
   // Zoom controls
-  const handleZoomIn = () => setZoomLevel((z) => Math.min(z + 0.5, 4));
+  const handleZoomIn = () => setZoomLevel((z) => Math.min(z + 0.5, 5));
   const handleZoomOut = () => {
     setZoomLevel((z) => {
       const next = Math.max(z - 0.5, 1);
@@ -364,19 +367,36 @@ export default function TargetFace({
       
       {/* Target Control Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--slate-800)] p-3 rounded-xl border border-[var(--slate-700)] shadow-sm">
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-black uppercase tracking-wider text-slate-400">Target Face:</label>
-          <select
-            value={targetType}
-            onChange={(e) => onTargetTypeChange(e.target.value as TargetType)}
-            className="bg-[var(--slate-900)] border border-[var(--slate-700)] rounded-lg px-3 py-1.5 text-xs font-bold text-white outline-none focus:border-[var(--accent)] cursor-pointer"
-          >
-            {Object.values(TARGET_DEFINITIONS).map((target) => (
-              <option key={target.id} value={target.id}>
-                {target.name}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-black uppercase tracking-wider text-slate-400">Target Face:</label>
+            <select
+              value={targetType}
+              onChange={(e) => onTargetTypeChange(e.target.value as TargetType)}
+              className="bg-[var(--slate-900)] border border-[var(--slate-700)] rounded-lg px-3 py-1.5 text-xs font-bold text-white outline-none focus:border-[var(--accent)] cursor-pointer"
+            >
+              {Object.values(TARGET_DEFINITIONS).map((target) => (
+                <option key={target.id} value={target.id}>
+                  {target.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-black uppercase tracking-wider text-slate-400">Arrow Size:</label>
+            <select
+              value={arrowRadius}
+              onChange={(e) => setArrowRadius(parseFloat(e.target.value))}
+              className="bg-[var(--slate-900)] border border-[var(--slate-700)] rounded-lg px-2.5 py-1.5 text-xs font-bold text-white outline-none focus:border-[var(--accent)] cursor-pointer"
+            >
+              <option value="3.5">Ultra-Slim (3.5mm)</option>
+              <option value="5.0">Slim Easton (5mm)</option>
+              <option value="6.5">Target Carbon (6.5mm)</option>
+              <option value="8.0">Standard Carbon (8mm)</option>
+              <option value="9.5">Line-Cutter (9.5mm)</option>
+            </select>
+          </div>
         </div>
 
         {/* Interaction Mode Toggle */}
@@ -422,7 +442,7 @@ export default function TargetFace({
           </span>
           <button
             onClick={handleZoomIn}
-            disabled={zoomLevel >= 4}
+            disabled={zoomLevel >= 5}
             className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-all cursor-pointer"
             title="Zoom In"
           >
@@ -543,13 +563,13 @@ export default function TargetFace({
               <circle
                 cx={shot.x}
                 cy={shot.y}
-                r="6.5"
+                r={arrowRadius * 0.8}
                 fill="#475569"
                 stroke="#F8FAFC"
                 strokeWidth="1"
               />
-              <line x1={shot.x - 10} y1={shot.y} x2={shot.x + 10} y2={shot.y} stroke="#fff" strokeWidth="0.5" />
-              <line x1={shot.x} y1={shot.y - 10} x2={shot.x} y2={shot.y + 10} stroke="#fff" strokeWidth="0.5" />
+              <line x1={shot.x - (arrowRadius + 3)} y1={shot.y} x2={shot.x + (arrowRadius + 3)} y2={shot.y} stroke="#fff" strokeWidth="0.5" />
+              <line x1={shot.x} y1={shot.y - (arrowRadius + 3)} x2={shot.x} y2={shot.y + (arrowRadius + 3)} stroke="#fff" strokeWidth="0.5" />
             </g>
           ))}
 
@@ -566,10 +586,10 @@ export default function TargetFace({
                 <circle
                   cx={shot.x}
                   cy={shot.y}
-                  r="14"
+                  r={arrowRadius + 5.5}
                   fill="none"
                   stroke={archerColor}
-                  strokeWidth="2.5"
+                  strokeWidth="2"
                   className="animate-ping"
                   opacity="0.6"
                 />
@@ -578,27 +598,27 @@ export default function TargetFace({
               <circle
                 cx={shot.x}
                 cy={shot.y}
-                r="8.5"
+                r={arrowRadius}
                 fill={archerColor}
                 stroke="#FFFFFF"
-                strokeWidth="2"
+                strokeWidth="1.5"
                 shadow-lg="true"
               />
               {/* Inner pointer target */}
-              <circle cx={shot.x} cy={shot.y} r="1.5" fill="#FFFFFF" />
+              <circle cx={shot.x} cy={shot.y} r="1" fill="#FFFFFF" />
               {/* Visual crosshair centered on coordinate */}
-              <line x1={shot.x - 12} y1={shot.y} x2={shot.x + 12} y2={shot.y} stroke={archerColor} strokeWidth="1" />
-              <line x1={shot.x} y1={shot.y - 12} x2={shot.x} y2={shot.y + 12} stroke={archerColor} strokeWidth="1" />
+              <line x1={shot.x - (arrowRadius + 3.5)} y1={shot.y} x2={shot.x + (arrowRadius + 3.5)} y2={shot.y} stroke={archerColor} strokeWidth="0.8" />
+              <line x1={shot.x} y1={shot.y - (arrowRadius + 3.5)} x2={shot.x} y2={shot.y + (arrowRadius + 3.5)} stroke={archerColor} strokeWidth="0.8" />
               {/* Arrow label number */}
               <text
                 x={shot.x}
-                y={shot.y - 13}
+                y={shot.y - (arrowRadius + 4.5)}
                 fill="#FFFFFF"
-                fontSize="11"
+                fontSize={arrowRadius < 6 ? "9" : "11"}
                 fontWeight="black"
                 textAnchor="middle"
                 className="select-none pointer-events-none drop-shadow-lg filter bg-black"
-                style={{ paintOrder: 'stroke', stroke: '#000000', strokeWidth: '2.5px' }}
+                style={{ paintOrder: 'stroke', stroke: '#000000', strokeWidth: '2px' }}
               >
                 {index + 1}
               </text>
