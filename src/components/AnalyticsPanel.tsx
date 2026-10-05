@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Shot, End, ArcherySession, TargetType } from '../types';
 import { TARGET_DEFINITIONS } from '../targetDefinitions';
-import { BarChart3, HelpCircle, Flame, ShieldAlert, Award, Compass, Sparkles } from 'lucide-react';
+import { BarChart3, HelpCircle, Flame, ShieldAlert, Award, Compass, Sparkles, Download, Camera } from 'lucide-react';
 
 interface AnalyticsPanelProps {
   session: ArcherySession;
@@ -15,6 +15,63 @@ export default function AnalyticsPanel({
   pastSessions = [],
 }: AnalyticsPanelProps) {
   const [selectedTab, setSelectedTab] = useState<'coaching' | 'grouping' | 'stats'>('coaching');
+  const scatterSvgRef = useRef<SVGSVGElement>(null);
+
+  const handleDownloadScatter = async () => {
+    const svg = scatterSvgRef.current;
+    if (!svg) return;
+
+    try {
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svg);
+      
+      const canvas = document.createElement('canvas');
+      const size = 1000; // High resolution square
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Fill a premium dark background matching Slate 900
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(0, 0, size, size);
+
+      // Convert SVG code into image blob url
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+
+      img.onload = () => {
+        // Draw target scatter plot in the center of canvas
+        ctx.drawImage(img, 50, 50, size - 100, size - 100);
+        
+        // Brand details at the bottom of the canvas
+        ctx.fillStyle = '#10B981'; // Emerald 500
+        ctx.font = '900 24px system-ui, sans-serif';
+        ctx.fillText('TOURNAMENTOS | SHOT GROUP SCATTER', 50, size - 35);
+
+        ctx.fillStyle = '#64748B'; // Slate 500
+        ctx.font = 'bold 16px system-ui, sans-serif';
+        const dateString = new Date().toLocaleString();
+        ctx.fillText(`Archer: ${session.archerName} | Dispersion: ${Math.round(groupRadius)}mm | Centroid: (${meanX.toFixed(1)}, ${meanY.toFixed(1)})mm | Exported: ${dateString}`, 50, 35);
+
+        // Download PNG
+        const pngUrl = canvas.toDataURL('image/png');
+        const downloadLink = document.createElement('a');
+        downloadLink.href = pngUrl;
+        downloadLink.download = `ShotGroupScatter-${session.archerName.replace(/\s+/g, '_')}-${Date.now()}.png`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        URL.revokeObjectURL(url);
+      };
+
+      img.src = url;
+    } catch (e) {
+      console.error('Failed to export scatter plot PNG:', e);
+    }
+  };
 
   // Extract all shots in this session
   const allShots: Shot[] = session.ends.flatMap((end) => end.shots);
@@ -356,7 +413,7 @@ export default function AnalyticsPanel({
             <div className="relative w-full max-w-[320px] aspect-square bg-[var(--slate-900)] p-4 rounded-xl border border-[var(--slate-700)] flex items-center justify-center">
               
               {/* Mini Target Face */}
-              <svg viewBox="-220 -220 440 440" className="w-full h-full overflow-visible select-none">
+              <svg ref={scatterSvgRef} viewBox="-220 -220 440 440" className="w-full h-full overflow-visible select-none">
                 {sortedRingsMini.map((ring) => (
                   <circle
                     key={ring.value}
@@ -436,6 +493,16 @@ export default function AnalyticsPanel({
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
                 An accurate sight calibration means the pink cross matches perfectly with the yellow center ring. A tight grouping radius represents muscular/anchor point consistency. Look to shrink the dashed circle diameter first, then move your sight to shift the cross to the center!
               </p>
+
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  onClick={handleDownloadScatter}
+                  className="px-4 py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600 hover:text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer"
+                  title="Download Shot Group Scatter plot with numbered arrow sequence"
+                >
+                  <Camera className="w-4 h-4" /> Export Scatter Plot (PNG)
+                </button>
+              </div>
             </div>
           </div>
         )}
