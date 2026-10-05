@@ -59,3 +59,4 @@ A multi-sport tournament and training management OS, currently supporting high-f
 
 ### B. Physical Target Plotting (Archery)
 - **Ring Resolution**: Coordinates clicked on the SVG target face are translated to score values (e.g., Inner 10, Outer 9, 8, etc.) using geometric radial bounds defined in `targetDefinitions.ts`.
+- **Line-Cutting Rule**: Incorporates the physical radius of the selected arrow shaft preset (e.g., Slim Easton, Standard Carbon, Line-Cutter) during scoring calculation. If the boundary line of a higher scoring zone is within the arrow's radius from the center, the higher value is awarded, conforming strictly to World Archery rules.

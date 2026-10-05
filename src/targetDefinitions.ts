@@ -82,15 +82,21 @@ export const TARGET_DEFINITIONS: Record<TargetType, TargetFaceDefinition> = {
 };
 
 /**
- * Calculates score from absolute distance from target center (0,0) with scale 0..200
+ * Calculates score from absolute distance from target center (0,0) with scale 0..200,
+ * incorporating arrowRadius for standard archery line-cutting rules.
  */
-export function calculateScoreFromCoords(x: number, y: number, targetType: TargetType): { score: string; value: number } {
+export function calculateScoreFromCoords(
+  x: number,
+  y: number,
+  targetType: TargetType,
+  arrowRadius: number = 0
+): { score: string; value: number } {
   const distance = Math.sqrt(x * x + y * y);
   const def = TARGET_DEFINITIONS[targetType];
   
-  // Find first ring containing this distance
+  // Find first ring containing this distance (incorporating arrow radius for line cutters)
   for (const ring of def.rings) {
-    if (distance <= ring.radius) {
+    if (distance <= ring.radius + arrowRadius) {
       let value = parseInt(ring.value, 10);
       if (ring.value === 'X') value = 10;
       if (isNaN(value)) value = 0;

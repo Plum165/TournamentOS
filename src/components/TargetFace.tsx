@@ -42,8 +42,8 @@ export default function TargetFace({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
-  // Arrow marker size state (suggested slim size 5.5)
-  const [arrowRadius, setArrowRadius] = useState(5.5);
+  // Arrow marker size state (suggested small default size 5.0mm)
+  const [arrowRadius, setArrowRadius] = useState(5.0);
 
   // Dragging shot state
   const [draggedShotId, setDraggedShotId] = useState<string | null>(null);
@@ -101,7 +101,7 @@ export default function TargetFace({
       return;
     }
 
-    const { score, value } = calculateScoreFromCoords(coords.x, coords.y, targetType);
+    const { score, value } = calculateScoreFromCoords(coords.x, coords.y, targetType, arrowRadius);
 
     const newShot: Shot = {
       id: `shot-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
@@ -130,7 +130,7 @@ export default function TargetFace({
 
     // 1. Drag Shot logic
     if (isDraggingShot && draggedShotId && interactionMode !== 'pan') {
-      const { score, value } = calculateScoreFromCoords(coords.x, coords.y, targetType);
+      const { score, value } = calculateScoreFromCoords(coords.x, coords.y, targetType, arrowRadius);
       onUpdateShot(draggedShotId, {
         x: parseFloat(coords.x.toFixed(1)),
         y: parseFloat(coords.y.toFixed(1)),
@@ -155,7 +155,7 @@ export default function TargetFace({
     // 3. Hover coordinate preview
     const dist = Math.sqrt(coords.x * coords.x + coords.y * coords.y);
     if (dist <= 220) {
-      const { score } = calculateScoreFromCoords(coords.x, coords.y, targetType);
+      const { score } = calculateScoreFromCoords(coords.x, coords.y, targetType, arrowRadius);
       setHoverCoord({
         x: parseFloat(coords.x.toFixed(1)),
         y: parseFloat(coords.y.toFixed(1)),
@@ -211,7 +211,7 @@ export default function TargetFace({
       if (!coords) return;
 
       if (isDraggingShot && draggedShotId && interactionMode !== 'pan') {
-        const { score, value } = calculateScoreFromCoords(coords.x, coords.y, targetType);
+        const { score, value } = calculateScoreFromCoords(coords.x, coords.y, targetType, arrowRadius);
         onUpdateShot(draggedShotId, {
           x: parseFloat(coords.x.toFixed(1)),
           y: parseFloat(coords.y.toFixed(1)),
