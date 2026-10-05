@@ -72,6 +72,10 @@ export default function App() {
   const [targetType, setTargetType] = useState<TargetType>('122cm');
   const [scoringMethod, setScoringMethod] = useState<'target' | 'numpad'>('target');
 
+  // --- ARCHERY PAST ENDS EDIT/DELETE STATE ---
+  const [editingEndId, setEditingEndId] = useState<string | null>(null);
+  const [stashedActiveShots, setStashedActiveShots] = useState<Shot[]>([]);
+
   // --- CUSTOM SPORT STATES ---
   interface CustomSport {
     id: string;
@@ -296,6 +300,100 @@ export default function App() {
     if (activeShots.length === 0) return;
     const nextShots = activeShots.slice(0, -1);
     saveActiveShots(nextShots);
+  };
+
+  // --- PAST ENDS EDIT & DELETE HANDLERS ---
+  const handleEditPastEnd = (endId: string) => {
+    if (!activeSession) return;
+    const endToEdit = activeSession.ends.find((e) => e.id === endId);
+    if (!endToEdit) return;
+
+    // Stash any active shots in progress for the current end
+    setStashedActiveShots(activeShots);
+    
+    // Load this past end's shots into the target face for editing
+    saveActiveShots([...endToEdit.shots]);
+    setEditingEndId(endId);
+    customAlert(`Loaded End ${endToEdit.endNumber} shots onto the target face. You can now drag/move/adjust them!`);
+  };
+
+  const handleSaveEditedEnd = () => {
+    if (!activeSession || !editingEndId) return;
+
+    const limit = activeSession.arrowsPerEnd;
+    if (activeShots.length < limit) {
+      customAlert(`Please record all ${limit} arrows for this end before applying changes.`);
+      return;
+    }
+
+    // Replace the shots in the edited end
+    const updatedEnds = activeSession.ends.map((end) => {
+      if (end.id === editingEndId) {
+        return {
+          ...end,
+          shots: [...activeShots],
+        };
+      }
+      return end;
+    });
+
+    const updatedSession: ArcherySession = {
+      ...activeSession,
+      ends: updatedEnds,
+    };
+
+    saveSession(updatedSession);
+    
+    // Restore the stashed active shots for the current end
+    saveActiveShots(stashedActiveShots);
+    setStashedActiveShots([]);
+    setEditingEndId(null);
+    customAlert("Changes successfully saved and applied to past end scorecard!");
+  };
+
+  const handleCancelEditPastEnd = () => {
+    // Just restore stashed shots and clear editing mode
+    saveActiveShots(stashedActiveShots);
+    setStashedActiveShots([]);
+    setEditingEndId(null);
+  };
+
+  const handleDeletePastEnd = async (endId: string) => {
+    if (!activeSession) return;
+    
+    const endToDelete = activeSession.ends.find((e) => e.id === endId);
+    if (!endToDelete) return;
+
+    const confirmDelete = await customConfirm(
+      `Are you sure you want to permanently delete End ${endToDelete.endNumber}? This will remove its scores and adjust subsequent end numbers.`
+    );
+    if (!confirmDelete) return;
+
+    // Filter out the end to delete
+    const remainingEnds = activeSession.ends.filter((e) => e.id !== endId);
+
+    // Re-number remaining ends consecutively
+    const renumberedEnds = remainingEnds.map((end, idx) => ({
+      ...end,
+      endNumber: idx + 1,
+    }));
+
+    const nextEndNum = renumberedEnds.length + 1;
+
+    const updatedSession: ArcherySession = {
+      ...activeSession,
+      ends: renumberedEnds,
+      currentEndNumber: nextEndNum,
+    };
+
+    saveSession(updatedSession);
+    
+    // If we were currently editing the end that got deleted, cancel editing
+    if (editingEndId === endId) {
+      saveActiveShots(stashedActiveShots);
+      setStashedActiveShots([]);
+      setEditingEndId(null);
+    }
   };
 
   const handleSaveEnd = async () => {
@@ -555,6 +653,26 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-col gap-6">
+                  {editingEndId !== null && (
+                    <div className="bg-blue-600/10 border border-blue-500/20 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-200 text-xs font-semibold animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2.5">
+                        <span className="relative flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                        </span>
+                        <span>
+                          Editing past <strong>End {activeSession.ends.find(e => e.id === editingEndId)?.endNumber}</strong>. Move or drag arrows directly on the target face or keypad!
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleCancelEditPastEnd}
+                        className="text-[10px] font-black uppercase tracking-widest bg-blue-500/20 hover:bg-blue-500/30 px-3 py-1.5 rounded-lg text-white transition-colors border border-blue-500/30 cursor-pointer self-end sm:self-auto"
+                      >
+                        Cancel Edit
+                      </button>
+                    </div>
+                  )}
+
                   {scoringMethod === 'target' ? (
                     <TargetFace
                       targetType={targetType}
@@ -603,21 +721,44 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-2 flex gap-3">
-                    <button
-                      onClick={handleEndSessionEarly}
-                      className="flex-1 py-3 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 rounded-2xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer"
-                    >
-                      Finish early
-                    </button>
-                    <button
-                      onClick={handleSaveEnd}
-                      disabled={activeShots.length < activeSession.arrowsPerEnd}
-                      className="flex-2 py-3 bg-[var(--accent)] disabled:bg-neutral-800 disabled:text-white/20 text-slate-900 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 hover:brightness-110 cursor-pointer"
-                    >
-                      Save End <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {editingEndId !== null ? (
+                    <div className="mt-4 pt-2.5 flex flex-col gap-2.5 bg-blue-500/5 p-3.5 rounded-2xl border border-blue-500/20 animate-in slide-in-from-top-1 duration-200">
+                      <p className="text-[10px] font-black uppercase text-blue-400 tracking-wider text-center">
+                        ⚡ Currently Editing End {activeSession.ends.find(e => e.id === editingEndId)?.endNumber}
+                      </p>
+                      <div className="flex gap-2 w-full">
+                        <button
+                          onClick={handleCancelEditPastEnd}
+                          className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer border-none"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleSaveEditedEnd}
+                          disabled={activeShots.length < activeSession.arrowsPerEnd}
+                          className="flex-2 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-800 disabled:text-white/20 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 hover:brightness-110 cursor-pointer border-none"
+                        >
+                          Apply Changes <CheckCircle2 className="w-4.5 h-4.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 pt-2 flex gap-3">
+                      <button
+                        onClick={handleEndSessionEarly}
+                        className="flex-1 py-3 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 rounded-2xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer"
+                      >
+                        Finish early
+                      </button>
+                      <button
+                        onClick={handleSaveEnd}
+                        disabled={activeShots.length < activeSession.arrowsPerEnd}
+                        className="flex-2 py-3 bg-[var(--accent)] disabled:bg-neutral-800 disabled:text-white/20 text-slate-900 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 hover:brightness-110 cursor-pointer"
+                      >
+                        Save End <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="glass rounded-3xl overflow-hidden border border-white/10 flex-1 flex flex-col shadow-xl min-h-[300px]">
@@ -633,7 +774,7 @@ export default function App() {
                     <table className="w-full text-center text-xs">
                       <thead className="bg-black/90 text-white/50 uppercase text-[9px] tracking-wider font-bold sticky top-0 z-10">
                         <tr>
-                          <th className="py-3 px-3">End</th>
+                          <th className="py-3 px-3 text-left pl-4">End</th>
                           <th>A1</th>
                           <th>A2</th>
                           <th>A3</th>
@@ -646,12 +787,13 @@ export default function App() {
                           )}
                           <th className="text-[var(--accent)]">ET</th>
                           <th className="text-blue-400">RT</th>
+                          <th className="text-right pr-4">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5 font-semibold text-white/80">
                         {activeSession.ends.length === 0 ? (
                           <tr>
-                            <td colSpan={isSixArrowEnd ? 9 : 6} className="py-12 text-center text-slate-500 font-bold">
+                            <td colSpan={isSixArrowEnd ? 10 : 7} className="py-12 text-center text-slate-500 font-bold">
                               Shoot arrows on target to log scoring sheet.
                             </td>
                           </tr>
@@ -661,10 +803,16 @@ export default function App() {
                             const rtSum = activeSession.ends
                               .slice(0, idx + 1)
                               .reduce((sum, e) => sum + e.shots.reduce((ss, ar) => ss + ar.value, 0), 0);
+                            const isBeingEdited = editingEndId === end.id;
 
                             return (
-                              <tr key={end.id} className="hover:bg-white/5 transition-colors">
-                                <td className="py-2.5 px-3 font-black text-white/40">{end.endNumber}</td>
+                              <tr 
+                                key={end.id} 
+                                className={`transition-colors group ${
+                                  isBeingEdited ? 'bg-blue-600/10 text-blue-200 font-bold' : 'hover:bg-white/5'
+                                }`}
+                              >
+                                <td className="py-2.5 px-3 text-left pl-4 font-black text-white/40">{end.endNumber}</td>
                                 <td>{end.shots[0]?.score || '-'}</td>
                                 <td>{end.shots[1]?.score || '-'}</td>
                                 <td>{end.shots[2]?.score || '-'}</td>
@@ -677,6 +825,27 @@ export default function App() {
                                 )}
                                 <td className="font-black text-[var(--accent)]">{endSum}</td>
                                 <td className="font-black text-blue-400">{rtSum}</td>
+                                <td className="py-2.5 px-2 text-right pr-4 whitespace-nowrap">
+                                  <div className="flex items-center justify-end gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      onClick={() => handleEditPastEnd(end.id)}
+                                      disabled={isBeingEdited}
+                                      className={`p-1.5 rounded transition-all cursor-pointer ${
+                                        isBeingEdited ? 'text-blue-400 bg-blue-500/10' : 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/15'
+                                      }`}
+                                      title={`Edit End ${end.endNumber}`}
+                                    >
+                                      <PenTool className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeletePastEnd(end.id)}
+                                      className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/15 rounded transition-all cursor-pointer"
+                                      title={`Delete End ${end.endNumber}`}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
                               </tr>
                             );
                           })
