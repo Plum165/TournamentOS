@@ -13,7 +13,7 @@ interface HistoryPanelProps {
 }
 
 export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
-  const { confirm } = useDialog();
+  const { confirm, alert: customAlert } = useDialog();
   const [history, setHistory] = useState<ArcherySession[]>([]);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
 
@@ -30,6 +30,84 @@ export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
         console.error('Failed to load archery session history', e);
       }
     }
+  };
+
+  const exportSessionJSON = (session: ArcherySession) => {
+    const jsonString = JSON.stringify(session, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `SessionShare_${session.archerName.replace(/\s+/g, '_')}_${session.date.replace(/\//g, '-')}.json`;
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportAllHistoryJSON = () => {
+    if (history.length === 0) return;
+    const jsonString = JSON.stringify(history, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ArcheryHistoryBackup_${Date.now()}.json`;
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = JSON.parse(text);
+
+        let sessionsToImport: ArcherySession[] = [];
+        
+        if (Array.isArray(parsed)) {
+          sessionsToImport = parsed.filter(s => s && s.id && s.archerName && Array.isArray(s.ends));
+        } else if (parsed && parsed.id && parsed.archerName && Array.isArray(parsed.ends)) {
+          sessionsToImport = [parsed];
+        }
+
+        if (sessionsToImport.length === 0) {
+          await customAlert('Could not find any valid Archery Session data in the selected JSON file.');
+          return;
+        }
+
+        const existingIds = new Set(history.map(s => s.id));
+        const sanitizedImport = sessionsToImport.map(session => {
+          if (existingIds.has(session.id)) {
+            return {
+              ...session,
+              id: `${session.id}-imported-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
+            };
+          }
+          return session;
+        });
+
+        const mergedHistory = [...sanitizedImport, ...history];
+        
+        setHistory(mergedHistory);
+        localStorage.setItem('archerySessionHistory', JSON.stringify(mergedHistory));
+        
+        await customAlert(`Successfully imported ${sanitizedImport.length} session(s) into your history logs!`);
+        e.target.value = '';
+      } catch (err) {
+        console.error('Failed to parse import JSON:', err);
+        await customAlert('Invalid file format. Please upload a valid session or history backup JSON file.');
+      }
+    };
+    reader.readAsText(file);
   };
 
   const deleteSession = async (id: string, name: string) => {
@@ -235,35 +313,57 @@ export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-300">
       
       {/* Header with quick aggregate actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[var(--slate-800)] p-6 rounded-2xl border border-[var(--slate-700)] shadow-md">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-[var(--slate-800)] p-6 rounded-2xl border border-[var(--slate-700)] shadow-md">
         <div>
           <h2 className="text-xl font-black text-white flex items-center gap-2">
             <Clock className="w-5 h-5 text-[var(--accent)]" /> 
             <span>Archery Scoring History</span>
           </h2>
           <p className="text-xs text-slate-400 font-semibold mt-1">
-            Browse and manage all permanently archived arrow-by-arrow logs.
+            Browse, manage, and share all permanently archived arrow-by-arrow logs.
           </p>
         </div>
 
-        {history.length > 0 && (
-          <div className="flex flex-wrap gap-2.5 w-full sm:w-auto">
-            <button
-              onClick={exportAllHistoryToCSV}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-black text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer"
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-              <span>Export All (Excel)</span>
-            </button>
-            <button
-              onClick={clearAllHistory}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600/15 border border-red-500/20 hover:bg-red-600/25 text-red-400 font-black text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Clear All</span>
-            </button>
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2.5 w-full lg:w-auto">
+          {/* File input trigger button */}
+          <label className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-sm">
+            <Eye className="w-4 h-4" />
+            <span>Import Share File</span>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImportJSON}
+              className="hidden"
+            />
+          </label>
+
+          {history.length > 0 && (
+            <>
+              <button
+                onClick={exportAllHistoryJSON}
+                className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer"
+                title="Backup all history logs as a shareable JSON data file"
+              >
+                <Download className="w-4 h-4 text-[var(--accent)]" />
+                <span>Backup All</span>
+              </button>
+              <button
+                onClick={exportAllHistoryToCSV}
+                className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-black text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Export All (Excel)</span>
+              </button>
+              <button
+                onClick={clearAllHistory}
+                className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600/15 border border-red-500/20 hover:bg-red-600/25 text-red-400 font-black text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Clear All</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {history.length === 0 ? (
@@ -379,6 +479,14 @@ export default function HistoryPanel({ onSelectSession }: HistoryPanelProps) {
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-[var(--slate-800)]/80 p-3.5 rounded-xl border border-white/5">
                           <span className="text-xs font-bold text-slate-300">Detailed scorecard and arrow heatmap breakdown:</span>
                           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <button
+                              onClick={() => exportSessionJSON(session)}
+                              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-600 hover:text-white rounded-lg text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                              title="Download complete shareable session file containing both scorecard and target plot coordinate data"
+                            >
+                              <Download className="w-4 h-4" />
+                              <span>Share Session File</span>
+                            </button>
                             <button
                               onClick={() => exportSessionToCSV(session)}
                               className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-900 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer"
