@@ -21,7 +21,7 @@ export default function TournamentPanel({
   const { alert, confirm } = useDialog();
 
   // Navigation subviews with localStorage persistence
-  const [viewState, setViewState] = useState<'roster' | 'categorySelect' | 'bracket' | 'roundRobin'>(() => {
+  const [viewState, setViewState] = useState<'roster' | 'categorySelect' | 'teamDraftPreview' | 'bracket' | 'roundRobin'>(() => {
     return (localStorage.getItem('archery_tournament_viewState') as any) || 'roster';
   });
   const [tournamentMode, setTournamentMode] = useState<'single' | 'team'>(() => {
@@ -30,6 +30,7 @@ export default function TournamentPanel({
   const [selectedCategory, setSelectedCategory] = useState<string>(() => {
     return localStorage.getItem('archery_tournament_selectedCategory') || 'Everyone';
   });
+  const [pendingTeamDraftCategory, setPendingTeamDraftCategory] = useState<string>('Everyone');
 
   // Input states
   const [partName, setPartName] = useState('');
@@ -210,8 +211,8 @@ export default function TournamentPanel({
     document.body.removeChild(link);
   };
 
-  // Get active distinct categories
-  const categories = ['Everyone', ...new Set(participants.map((p) => p.category))].sort();
+  // Get active distinct categories uniquely
+  const categories = Array.from(new Set(['Everyone', 'Recurve', 'Compound', 'Barebow', ...participants.map((p) => p.category)])).sort();
 
   // Filter and search rankings
   const sortedRankings = [...participants]
@@ -230,6 +231,16 @@ export default function TournamentPanel({
     }
     setTournamentMode(mode);
     setViewState('categorySelect');
+  };
+
+  const handleSelectCategory = (cat: string) => {
+    setSelectedCategory(cat);
+    if (tournamentMode === 'team') {
+      setPendingTeamDraftCategory(cat);
+      setViewState('teamDraftPreview');
+    } else {
+      handleBuildBracketForCategory(cat);
+    }
   };
 
   const handleBuildBracketForCategory = async (cat: string) => {
@@ -771,7 +782,7 @@ export default function TournamentPanel({
                       placeholder="e.g. Recurve, Compound..."
                     />
                     <datalist id="roster-divisions-presets">
-                      {['Recurve', 'Compound', 'Barebow', ...new Set(participants.map(p => p.category))].map((div) => (
+                      {Array.from(new Set(['Recurve', 'Compound', 'Barebow', ...participants.map(p => p.category)])).map((div) => (
                         <option key={div} value={div} />
                       ))}
                     </datalist>
@@ -939,14 +950,68 @@ export default function TournamentPanel({
             {participants.length > 0 && (
               <div className="flex justify-end mt-4">
                 <button
-                  onClick={onClearAll}
-                  className="px-4 py-2 bg-red-600/10 hover:bg-red-600 border border-red-500/30 text-red-400 hover:text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                  onClick={async () => {
+                    const confirmed = await confirm('Are you sure you want to reset the entire tournament roster? All registered competitors will be removed.');
+                    if (confirmed) {
+                      onClearAll();
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600/10 hover:bg-red-600 border border-red-500/30 text-red-400 hover:text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer"
                 >
                   Reset Roster
                 </button>
               </div>
             )}
           </div>
+
+          {/* Team Information & Roster Breakdown Section */}
+          {participants.length > 0 && (
+            <div className="glass p-5 rounded-xl border border-[var(--slate-700)] shadow-2xl space-y-4">
+              <div className="border-b border-[var(--slate-700)] pb-3 flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-base text-white flex items-center gap-2">
+                    <Users className="w-4 h-4 text-[var(--accent)]" /> Team & Club Roster Breakdown
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-0.5">View member assignments across registered teams and clubs</p>
+                </div>
+                <span className="px-3 py-1 bg-[var(--slate-800)] border border-[var(--slate-700)] rounded-lg text-xs font-black text-[var(--accent)]">
+                  {Object.keys(participants.reduce((acc, p) => {
+                    const t = p.team || 'Independent';
+                    acc[t] = true;
+                    return acc;
+                  }, {} as Record<string, boolean>)).length} Teams Active
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(
+                  participants.reduce((acc, p) => {
+                    const t = p.team || 'Independent';
+                    if (!acc[t]) acc[t] = [];
+                    acc[t].push(p);
+                    return acc;
+                  }, {} as Record<string, Archer[]>)
+                ).map(([teamName, teamMembers]) => (
+                  <div key={teamName} className="bg-[var(--slate-900)] border border-[var(--slate-700)] rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between border-b border-[var(--slate-800)] pb-2">
+                      <h5 className="font-extrabold text-sm text-white truncate max-w-[180px]">{teamName}</h5>
+                      <span className="text-[10px] font-black bg-[var(--accent)]/15 text-[var(--accent)] px-2 py-0.5 rounded-md">
+                        {teamMembers.length} {teamMembers.length === 1 ? 'Archer' : 'Archers'}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 max-h-[160px] overflow-y-auto">
+                      {teamMembers.map((member) => (
+                        <div key={member.id} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-[var(--slate-800)]/60">
+                          <span className="font-bold text-slate-200 truncate max-w-[130px]">{member.name}</span>
+                          <span className="text-[10px] text-[var(--accent)] font-semibold">{member.points} Pts</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </div>
       )}
@@ -996,8 +1061,8 @@ export default function TournamentPanel({
                     <button
                       key={cat}
                       disabled={count < 2}
-                      onClick={() => handleBuildBracketForCategory(cat)}
-                      className="p-5 bg-black/40 border border-white/10 hover:border-[var(--accent)]/50 rounded-2xl text-center transition-all group disabled:opacity-40 disabled:hover:border-white/10"
+                      onClick={() => handleSelectCategory(cat)}
+                      className="p-5 bg-black/40 border border-white/10 hover:border-[var(--accent)]/50 rounded-2xl text-center transition-all group disabled:opacity-40 disabled:hover:border-white/10 cursor-pointer"
                     >
                       <span className="text-sm font-black text-white uppercase tracking-wider block group-hover:text-[var(--accent)] transition-colors">
                         {cat}
@@ -1014,6 +1079,98 @@ export default function TournamentPanel({
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TEAM DRAFT PREVIEW WITH POINTS SUBVIEW */}
+      {viewState === 'teamDraftPreview' && (
+        <div className="max-w-4xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center justify-between glass p-4 rounded-2xl shadow-xl">
+            <button
+              onClick={() => setViewState('categorySelect')}
+              className="flex items-center gap-1.5 text-xs font-black text-white/60 hover:text-white uppercase tracking-widest cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to Divisions
+            </button>
+            <span className="text-xs font-black text-[var(--accent)] uppercase tracking-widest">
+              DRAFTED TEAMS & POINTS: {pendingTeamDraftCategory}
+            </span>
+          </div>
+
+          <div className="glass p-8 rounded-3xl border border-white/10 shadow-2xl space-y-6">
+            <div className="text-center space-y-2">
+              <Users className="w-12 h-12 text-[var(--accent)] mx-auto" />
+              <h3 className="text-2xl font-black text-white">Balanced Team Pairings</h3>
+              <p className="text-xs text-white/50 max-w-md mx-auto leading-relaxed font-semibold">
+                Archers are dynamically paired using balanced seeding (highest ranked paired with lowest ranked) to ensure competitive parity.
+              </p>
+            </div>
+
+            {/* Compute team draft pairs */}
+            {(() => {
+              const filtered = pendingTeamDraftCategory === 'Everyone' ? participants : participants.filter((p) => p.category === pendingTeamDraftCategory);
+              const players = [...filtered].sort((a, b) => b.points - a.points);
+              const draftedTeams: { name: string; points: number; players: Archer[] }[] = [];
+              let left = 0;
+              let right = players.length - 1;
+
+              while (left < right) {
+                const p1 = players[left];
+                const p2 = players[right];
+                draftedTeams.push({
+                  name: `${p1.name} & ${p2.name}`,
+                  points: p1.points + p2.points,
+                  players: [p1, p2],
+                });
+                left++;
+                right--;
+              }
+
+              if (left === right) {
+                const p = players[left];
+                draftedTeams.push({
+                  name: `${p.name} (Single Bye)`,
+                  points: p.points,
+                  players: [p],
+                });
+              }
+
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {draftedTeams.map((team, idx) => (
+                      <div key={idx} className="bg-black/40 border border-white/10 rounded-2xl p-5 space-y-3">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                          <span className="font-extrabold text-sm text-white">Team #{idx + 1}: {team.name}</span>
+                          <span className="text-xs font-black text-[var(--accent)] bg-[var(--accent)]/15 px-2.5 py-1 rounded-lg">
+                            {team.points} Pts Total
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {team.players.map((pl) => (
+                            <div key={pl.id} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-white/5">
+                              <span className="text-slate-300 font-bold">{pl.name}</span>
+                              <span className="text-slate-400 font-mono">{pl.points} pts • {pl.team}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-4 flex justify-end">
+                    <button
+                      onClick={() => handleBuildBracketForCategory(pendingTeamDraftCategory)}
+                      className="px-6 py-3 bg-[var(--accent)] hover:brightness-110 text-slate-900 font-black text-xs uppercase tracking-widest rounded-2xl transition-all shadow-xl flex items-center gap-2 cursor-pointer border-none"
+                    >
+                      <span>Proceed to Team Bracket</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
